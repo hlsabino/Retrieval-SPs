@@ -1,0 +1,705 @@
+﻿USE PACT2C276
+GO
+SET ANSI_NULLS, QUOTED_IDENTIFIER ON
+GO
+CREATE PROCEDURE [dbo].[spPAY_GetCurrYearLeavesInfo]
+	@FromDate [varchar](20) = null,
+	@ToDate [varchar](20) = null,
+	@EmployeeID [int] = 0,
+	@LeaveType [int] = 0,
+	@userid [int] = 1,
+	@langid [int] = 1,
+	@LVStartDate [datetime],
+	@EncahsedLeavesMode [int] = 0,
+	@CurrYearLeavesTakenOP [float] OUTPUT,
+	@NoOfHolidayOP [int] OUTPUT,
+	@NoOfWkOffsOP [int] OUTPUT,
+	@EncahsedLeavesOP [decimal](9, 2) OUTPUT
+WITH ENCRYPTION, EXECUTE AS CALLER
+AS
+BEGIN
+	SET NOCOUNT ON;
+	DECLARE @NOOFHOLIDAYS INT,@WEEKLYOFFCOUNT INT,@INCREXC VARCHAR(50),@ATATIME INT,@MAXLEAVES INT,@CurrYearLeavestaken DECIMAL(9,2),@ExstAppliedEncashdays DECIMAL(9,2)
+	DECLARE @FDATE DATETIME,@TDATE DATETIME
+
+	DECLARE @MONTH111 DATETIME,@MONTH222 DATETIME
+	DECLARE @MONTH13 DATETIME,@MONTH14 DATETIME
+
+	DECLARE @MONTH1 DATETIME,@MONTH2 DATETIME,@MONTH3 DATETIME,@MONTH4 DATETIME,@MONTH5 DATETIME,@MONTH6 DATETIME
+	DECLARE @MONTH7 DATETIME,@MONTH8 DATETIME,@MONTH9 DATETIME,@MONTH10 DATETIME,@MONTH11 DATETIME,@MONTH12 DATETIME
+	DECLARE @YEARDIFF INT,@YC INT
+	DECLARE @Year INT,@ALStartMonth INT
+	DECLARE @ALStartMonthYear DATETIME,@ALEndMonthYear DATETIME
+	CREATE TABLE #MONTHTAB(ID INT IDENTITY(1,1) PRIMARY KEY,STDATE DATETIME,EDDATE DATETIME)
+	DECLARE @LocID INT
+	DECLARE @PayrollDate DATETIME,@PayrollStart DATETIME,@PayrollEnd DATETIME
+
+	EXEC spPAY_GetPayrollDate @FROMDATE,@PayrollDate OUTPUT,@PayrollStart OUTPUT, @PayrollEnd OUTPUT 
+	
+	--SET TO FIRST DAY FOR THE GIVEN DATE
+	--SET @PayrollDate=DATEADD(MONTH,DATEDIFF(MONTH,0,CONVERT(DATETIME,@FromDate)),0)
+	IF((SELECT COUNT(*) FROM ADM_CostCenterDef WITH(NOLOCK) WHERE CostCenterID=50051 and SysColumnName ='CCNID2' and IsColumnInUse=1 and UserProbableValues='H')>0)
+		SELECT @LocID=HistoryNodeID FROM COM_HistoryDetails WITH(NOLOCK) WHERE NodeID=@EmployeeID AND CostCenterID=50051 AND HistoryCCID=50002 AND (FromDate<=CONVERT(FLOAT,CONVERT(DATETIME,@PayrollDate))) AND (ToDate>=CONVERT(FLOAT,CONVERT(DATETIME,@PayrollDate)) OR ToDate IS NULL)
+	ELSE
+		SELECT @LocID=ISNULL(CC.CCNID2,1) FROM COM_CC50051 C51 WITH(NOLOCK),COM_CCCCDATA CC  WITH(NOLOCK) WHERE C51.NODEID=CC.NODEID AND C51.NODEID=@EmployeeID
+	
+	SELECT @YEARDIFF=DATEDIFF(yyyy,@FromDate,@ToDate)
+	SET @YC=0
+	
+	--START:FOR START DATE AND END DATE OF LEAVE YEAR
+	EXEC [spPAY_EXTGetLeaveyearDates] @FromDate,@ALStartMonthYear OUTPUT,@ALEndMonthYear OUTPUT
+
+		IF ISNULL(@YEARDIFF,0)>2
+		BEGIN
+			SET @FDATE=@FromDate
+			--START : LOADING MONTHS BASED ON GIVEN YEAR RANGE FROM FROMDATE AND TODATE
+			WHILE(@YC<=@YEARDIFF)
+			BEGIN
+				SET @MONTH111 =dateadd(m,-2,@FDATE)
+				SET @MONTH222 =DATEADD(D,-1,DATEADD(MM,DATEDIFF(M,0,@FDATE),0))
+				----
+				SET @MONTH1 =@FDATE
+				SET @MONTH2 =DATEADD(D,-1,DATEADD(MM,DATEDIFF(M,0,@FDATE)+2,0))
+				SET @MONTH3 = DATEADD(d,1,DATEADD(D,-1,DATEADD(MM,DATEDIFF(M,0,@FDATE)+2,0)))
+				SET @MONTH4 =DATEADD(D,-1,DATEADD(MM,DATEDIFF(M,0,@FDATE)+4,0))
+				SET @MONTH5 = DATEADD(d,1,DATEADD(D,-1,DATEADD(MM,DATEDIFF(M,0,@FDATE)+4,0)))
+				SET @MONTH6 = DATEADD(D,-1,DATEADD(MM,DATEDIFF(M,0,@FDATE)+6,0))
+				SET @MONTH7 = DATEADD(d,1,DATEADD(D,-1,DATEADD(MM,DATEDIFF(M,0,@FDATE)+6,0)))
+				SET @MONTH8 = DATEADD(D,-1,DATEADD(MM,DATEDIFF(M,0,@FDATE)+8,0))
+				SET @MONTH9 = DATEADD(d,1,DATEADD(D,-1,DATEADD(MM,DATEDIFF(M,0,@FDATE)+8,0)))
+				SET @MONTH10 = DATEADD(D,-1,DATEADD(MM,DATEDIFF(M,0,@FDATE)+10,0))
+				SET @MONTH11 = DATEADD(d,1,DATEADD(D,-1,DATEADD(MM,DATEDIFF(M,0,@FDATE)+10,0)))
+				SET @MONTH12 = DATEADD(D,-1,DATEADD(MM,DATEDIFF(M,0,@FDATE)+12,0))
+
+				SET @MONTH13 = DATEADD(d,1,DATEADD(D,-1,DATEADD(MM,DATEDIFF(M,0,@FDATE)+12,0)))
+				SET @MONTH14 = DATEADD(D,-1,DATEADD(MM,DATEDIFF(M,0,@FDATE)+14,0))
+				
+
+				INSERT INTO #MONTHTAB VALUES(@MONTH111,@MONTH222)
+
+				INSERT INTO #MONTHTAB VALUES(@MONTH1,@MONTH2)
+				INSERT INTO #MONTHTAB VALUES(@MONTH3,@MONTH4)
+				INSERT INTO #MONTHTAB VALUES(@MONTH5,@MONTH6)
+				INSERT INTO #MONTHTAB VALUES(@MONTH7,@MONTH8)
+				INSERT INTO #MONTHTAB VALUES(@MONTH9,@MONTH10)
+				INSERT INTO #MONTHTAB VALUES(@MONTH11,@MONTH12)
+				
+				INSERT INTO #MONTHTAB VALUES(@MONTH13,@MONTH14)
+
+				SET @FDATE=DATEADD(YY,1,@FDATE)
+			SET @YC=@YC+1
+			END
+			--END : LOADING MONTHS BASED ON GIVEN YEAR RANGE FROM FROMDATE AND TODATE
+		END
+		ELSE
+		BEGIN
+				--START : LOADING MONTHS BASED ON GIVEN DATE RANGE FROM FROMDATE AND TODATE
+
+				SET @MONTH111 =dateadd(m,-2,@ALStartMonthYear)
+				SET @MONTH222 =DATEADD(D,-1,DATEADD(MM,DATEDIFF(M,0,@ALStartMonthYear),0))
+
+				SET @MONTH1 =@ALStartMonthYear
+				SET @MONTH2 =DATEADD(D,-1,DATEADD(MM,DATEDIFF(M,0,@ALStartMonthYear)+2,0))
+				SET @MONTH3 = DATEADD(d,1,DATEADD(D,-1,DATEADD(MM,DATEDIFF(M,0,@ALStartMonthYear)+2,0)))
+				SET @MONTH4 =DATEADD(D,-1,DATEADD(MM,DATEDIFF(M,0,@ALStartMonthYear)+4,0))
+				SET @MONTH5 = DATEADD(d,1,DATEADD(D,-1,DATEADD(MM,DATEDIFF(M,0,@ALStartMonthYear)+4,0)))
+				SET @MONTH6 = DATEADD(D,-1,DATEADD(MM,DATEDIFF(M,0,@ALStartMonthYear)+6,0))
+				SET @MONTH7 = DATEADD(d,1,DATEADD(D,-1,DATEADD(MM,DATEDIFF(M,0,@ALStartMonthYear)+6,0)))
+				SET @MONTH8 = DATEADD(D,-1,DATEADD(MM,DATEDIFF(M,0,@ALStartMonthYear)+8,0))
+				SET @MONTH9 = DATEADD(d,1,DATEADD(D,-1,DATEADD(MM,DATEDIFF(M,0,@ALStartMonthYear)+8,0)))
+				SET @MONTH10 = DATEADD(D,-1,DATEADD(MM,DATEDIFF(M,0,@ALStartMonthYear)+10,0))
+				SET @MONTH11 = DATEADD(d,1,DATEADD(D,-1,DATEADD(MM,DATEDIFF(M,0,@ALStartMonthYear)+10,0)))
+				SET @MONTH12 = DATEADD(D,-1,DATEADD(MM,DATEDIFF(M,0,@ALStartMonthYear)+12,0))
+
+				SET @MONTH13 = DATEADD(d,1,DATEADD(D,-1,DATEADD(MM,DATEDIFF(M,0,@ALStartMonthYear)+12,0)))
+				SET @MONTH14 = DATEADD(D,-1,DATEADD(MM,DATEDIFF(M,0,@ALStartMonthYear)+14,0))
+				
+				INSERT INTO #MONTHTAB VALUES(@MONTH111,@MONTH222)
+
+				INSERT INTO #MONTHTAB VALUES(@MONTH1,@MONTH2)
+				INSERT INTO #MONTHTAB VALUES(@MONTH3,@MONTH4)
+				INSERT INTO #MONTHTAB VALUES(@MONTH5,@MONTH6)
+				INSERT INTO #MONTHTAB VALUES(@MONTH7,@MONTH8)
+				INSERT INTO #MONTHTAB VALUES(@MONTH9,@MONTH10)
+				INSERT INTO #MONTHTAB VALUES(@MONTH11,@MONTH12)
+
+				INSERT INTO #MONTHTAB VALUES(@MONTH13,@MONTH14)
+				--END : LOADING MONTHS BASED ON GIVEN DATE RANGE FROM FROMDATE AND TODATE
+		END
+			IF(@FromDate is not null and @ToDate is not null )
+			BEGIN			
+				--FOR ENCASHED LEAVES
+				IF ISNULL(@EncahsedLeavesMode,0)=0
+				BEGIN
+					SELECT @ExstAppliedEncashdays=sum(CONVERT(decimal(9,2),TD.DCALPHA3))
+					FROM   INV_DOCDETAILS ID WITH(NOLOCK) 
+					JOIN COM_DocCCData DC WITH(NOLOCK) ON ID.INVDOCDETAILSID=DC.INVDOCDETAILSID
+					JOIN COM_DocTextData TD WITH(NOLOCK) ON ID.INVDOCDETAILSID=TD.INVDOCDETAILSID
+					WHERE  TD.tCOSTCENTERID=40058 AND ID.STATUSID NOT IN (372,376) AND ISNUMERIC(TD.DCALPHA3)=1 AND CONVERT(DATETIME,ID.DOCDATE) <=CONVERT(DATETIME,@LVStartDate)
+						   AND CONVERT(DATETIME,ID.DOCDATE) BETWEEN CONVERT(DATETIME,@ALStartMonthYear) and CONVERT(DATETIME,@ALEndMonthYear)
+					       AND DC.DCCCNID51=@EmployeeID  AND DC.DCCCNID52=@LeaveType
+
+										
+					SELECT @ExstAppliedEncashdays=ISNULL(@ExstAppliedEncashdays,0)+ISNULL(sum(CONVERT(decimal(9,2),TD.DCALPHA15)),0)
+					FROM   INV_DOCDETAILS ID WITH(NOLOCK) JOIN COM_DocCCData DC WITH(NOLOCK) ON ID.INVDOCDETAILSID=DC.INVDOCDETAILSID
+					JOIN COM_DocTextData TD WITH(NOLOCK) ON ID.INVDOCDETAILSID=TD.INVDOCDETAILSID
+					JOIN COM_CC50052 C52 WITH(NOLOCK) ON C52.NAME=TD.dcAlpha12
+					WHERE TD.tCOSTCENTERID=40095 AND ID.STATUSID NOT IN (372,376) AND TD.dcAlpha1='2' AND  DC.DCCCNID51=@EmployeeID  AND C52.NodeID=@LeaveType
+					 AND ISNUMERIC(TD.DCALPHA15)=1	AND ISDATE(TD.dcAlpha3)=1	AND (CONVERT(DATETIME,TD.dcAlpha3)) BETWEEN (CONVERT(DATETIME,@FromDate))  AND (CONVERT(DATETIME,@ToDate))
+   
+				END
+				ELSE IF ISNULL(@EncahsedLeavesMode,0)=1--FOR MONTHLY PAYROLL PROCEDURE
+				BEGIN
+					SELECT @ExstAppliedEncashdays=sum(CONVERT(decimal(9,2),TD.DCALPHA3))
+					FROM   INV_DOCDETAILS ID WITH(NOLOCK) JOIN COM_DocCCData DC WITH(NOLOCK) ON ID.INVDOCDETAILSID=DC.INVDOCDETAILSID
+						   JOIN COM_DocTextData TD WITH(NOLOCK) ON ID.INVDOCDETAILSID=TD.INVDOCDETAILSID
+					WHERE  TD.tCOSTCENTERID=40058 AND ID.STATUSID NOT IN (372,376) AND ISNUMERIC(TD.DCALPHA3)=1	AND MONTH(CONVERT(DATETIME,ID.DOCDATE)) =MONTH(CONVERT(DATETIME,@LVStartDate))
+					       AND CONVERT(DATETIME,ID.DOCDATE) BETWEEN CONVERT(DATETIME,@ALStartMonthYear) and CONVERT(DATETIME,@ALEndMonthYear)
+					       AND DC.DCCCNID51=@EmployeeID  AND DC.DCCCNID52=@LeaveType
+				END
+				--START :CURRENT DATERANGE LEAVES TAKEN
+					--START: LOADING DATES FROM @MONTHTAB TABLE	   
+				   	CREATE TABLE #DATESCOUNT (SNO INT IDENTITY(1,1) PRIMARY KEY,ID INT ,DATE1 DATETIME,DAYNAME VARCHAR(50),WEEKNO INT,COUNT INT,NOOFDAYS DECIMAL(9,2),FLAG INT,IncExc varchar(5))
+				   	DECLARE @STARTDATE1 DATETIME,@ENDATE1 DATETIME
+				   	DECLARE @MRC AS INT,@MC AS INT,@MID INT
+				   	
+				   	SET @MC=1
+				   	SELECT @MRC=COUNT(*) FROM #MONTHTAB WITH(NOLOCK)
+					
+				   	WHILE (@MC<=@MRC)
+				   	BEGIN
+				   		SELECT @STARTDATE1=CONVERT(DATETIME,STDATE),@ENDATE1=CONVERT(DATETIME,EDDATE) FROM #MONTHTAB WITH(NOLOCK) WHERE ID=@MC
+				   		;WITH DATERANGE AS
+						(
+						SELECT @STARTDATE1 AS DT,1 AS ID
+						UNION ALL
+						SELECT DATEADD(DD,1,DT),DATERANGE.ID+1 FROM DATERANGE WHERE ID<=DATEDIFF("d",convert(varchar,@STARTDATE1,101),convert(varchar,@ENDATE1,101))
+						)
+						
+						INSERT INTO #DATESCOUNT
+						SELECT ROW_NUMBER() OVER (ORDER BY DT) AS ID,DT AS WEEKDATE,DATENAME(DW,DT) AS DAY,0,0,0,0,'' FROM DATERANGE	--WHERE (DATEPART(DW,DT)=1 OR DATEPART(DW,DT)=7)
+				   	SET @MC=@MC+1
+				   	END
+
+				    --END: LOADING DATES FROM @MONTHTAB TABLE
+						--START: LOADING DATA BASED ON FROMDATE AND TODATE GIVEN 
+						  CREATE TABLE #DATESAPPLIEDCOUNT (ID INT IDENTITY(1,1) PRIMARY KEY,FDATE DATETIME,TDATE DATETIME,STODATE DATETIME,EODATE DATETIME,NOOFDAYS DECIMAL(9,2),PostedFrom NVARCHAR(100))
+						  INSERT INTO #DATESAPPLIEDCOUNT
+							   SELECT CONVERT(DATETIME,dcAlpha4),CONVERT(DATETIME,dcAlpha5),CONVERT(DATETIME,@FromDate),CONVERT(DATETIME,@ToDate),ISNULL(dcAlpha7,0) ,ISNULL(TD.dcAlpha16,'')
+							   FROM   INV_DOCDETAILS ID WITH(NOLOCK) 
+							   JOIN COM_DocCCData DC WITH(NOLOCK) ON ID.INVDOCDETAILSID=DC.INVDOCDETAILSID 
+							   JOIN COM_DocTextData TD WITH(NOLOCK) ON ID.INVDOCDETAILSID=TD.INVDOCDETAILSID
+							   WHERE  TD.tDocumentType=62 
+							   AND DC.DCCCNID51=@EmployeeID  AND  DC.dcCCNID52=@LeaveType 
+							   AND ID.STATUSID NOT IN (372,376)
+							   
+					   --END: LOADING DATA BASED ON FROMDATE AND TODATE GIVEN				 
+						  
+					   --START: UPDATING @DATESCOUNT TABLE 'COUNT' COLUMN TO 1 FROM LIST OF @DATESAPPLIEDCOUNT TABLE
+						  DECLARE @RC AS INT,@IC AS INT,@TRC AS INT,@DTT AS DATETIME,@DAYS decimal(9,2)
+						  SET @IC=1
+						  SELECT @TRC=COUNT(*) FROM #DATESCOUNT WITH(NOLOCK)
+						  WHILE(@IC<=@TRC)
+						  BEGIN
+								SELECT @DTT=DATE1 FROM #DATESCOUNT WITH(NOLOCK) WHERE SNO=@IC
+								
+								SELECT @RC=COUNT(*) FROM #DATESAPPLIEDCOUNT WITH(NOLOCK) WHERE CONVERT(DATETIME,@DTT) between CONVERT(DATETIME,FDATE) and CONVERT(DATETIME,TDATE) AND PostedFrom<>'LatesProcessing'
+  						        UPDATE T SET count=ISNULL(@RC,0) FROM #DATESCOUNT T WITH(NOLOCK) WHERE CONVERT(DATETIME,DATE1)=CONVERT(DATETIME,@DTT)
+  						        UPDATE T SET FLAG=1 FROM #DATESCOUNT T WITH(NOLOCK) WHERE CONVERT(DATETIME,DATE1)=CONVERT(DATETIME,@DTT) and ISNULL(@RC,0)>0 
+						  SET @IC=@IC+1
+						  END
+						  UPDATE DT SET  DT.NOOFDAYS=ISNULL(DAC.NOOFDAYS,0) FROM #DATESCOUNT DT WITH(NOLOCK) INNER JOIN #DATESAPPLIEDCOUNT DAC WITH(NOLOCK) ON DT.DATE1=DAC.FDATE AND ISNULL(DAC.NOOFDAYS,0)=0.5
+					--END: UPDATING @DATESCOUNT TABLE 'COUNT' COLUMN TO 1 FROM LIST OF @DATESAPPLIEDCOUNT TABLE
+				--END :CURRENT DATERANGE LEAVES TAKEN		   
+				
+				--START WEEKLYOFF COUNT
+					--LOADING WEEKLYOFF INFORMATION OF EMPLOYEE
+					DECLARE @STRQUERY NVARCHAR(MAX),@I INT,@J INT,@COLNAME VARCHAR(15)
+					CREATE TABLE #EMPWEEKLYOFF (ID INT IDENTITY(1,1) PRIMARY KEY,WK11 varchar(50),WK12 varchar(50),WK21 varchar(50),WK22 varchar(50), WK31 varchar(50),
+											   WK32 varchar(50),WK41 varchar(50),WK42 varchar(50),WK51 varchar(50),WK52 varchar(50),WEFDATE DATETIME)
+					CREATE TABLE #EMPWEEKLYOFF1 (ID INT IDENTITY(1,1) PRIMARY KEY,WK11 varchar(50),WK12 varchar(50),WK21 varchar(50),WK22 varchar(50), WK31 varchar(50),
+											   WK32 varchar(50),WK41 varchar(50),WK42 varchar(50),WK51 varchar(50),WK52 varchar(50),WEFDATE DATETIME)											   
+					CREATE TABLE #WEEKLYOFF  (ID INT IDENTITY(1,1) PRIMARY KEY,WEEKLYWEEKOFFNO int,DAYNAME varchar(100),WeekNo INT,WkDate DATETIME,WEFDATE DATETIME)										   
+					CREATE TABLE #WEEKLYOFF1  (ID INT IDENTITY(1,1) PRIMARY KEY,WEEKLYWEEKOFFNO int,DAYNAME varchar(100),WeekNo INT,WkDate DATETIME,WEFDATE DATETIME)										   
+					SET @STRQUERY=''	 
+					
+					SELECT CONVERT(DATETIME,ID.DUEDATE) DUEDATE,ISNULL(TD.dcAlpha1,'No') dcAlpha1,TD.dcAlpha2,TD.dcAlpha3,TD.dcAlpha4,TD.dcAlpha5,TD.dcAlpha6,TD.dcAlpha7,TD.dcAlpha8,TD.dcAlpha9,TD.dcAlpha10,TD.dcAlpha11 INTO #TW
+					FROM INV_DOCDETAILS ID WITH(NOLOCK)
+					JOIN COM_DocCCData DC WITH(NOLOCK) ON DC.INVDOCDETAILSID=ID.INVDOCDETAILSID
+					JOIN COM_DocTextData TD WITH(NOLOCK) ON TD.INVDOCDETAILSID=ID.INVDOCDETAILSID 
+					WHERE ID.COSTCENTERID=40053 AND DC.dcCCNID51=@EmployeeID	
+					AND CONVERT(DATETIME,ID.DUEDATE) BETWEEN CONVERT(DATETIME,@ALStartMonthYear) AND CONVERT(DATETIME,@ALEndMonthYear)  
+					
+					DECLARE @FD DATETIME,@TD DATETIME
+
+					SELECT TOP 1  @FD=DUEDATE FROM #TW WITH(NOLOCK) WHERE DUEDATE<=@ALStartMonthYear ORDER BY DUEDATE DESC
+
+					SELECT TOP 1  @TD=DUEDATE FROM #TW WITH(NOLOCK) WHERE DUEDATE<=@ALEndMonthYear ORDER BY DUEDATE DESC
+
+								   
+					--LOADING DATA FROM WEEKLYOFF MASTER											   
+					INSERT INTO #EMPWEEKLYOFF 
+					SELECT  dcAlpha2 WK11,dcAlpha3 WK12,dcAlpha4 WK21,dcAlpha5 WK22,dcAlpha6 WK31,dcAlpha7 WK32,dcAlpha8 WK41,dcAlpha9 WK42,
+					dcAlpha10 WK51,dcAlpha11 WK52,DUEDATE FROM #TW WITH(NOLOCK) WHERE DCALPHA1='No' AND DUEDATE>=@FD AND DUEDATE<=@TD ORDER BY  DUEDATE DESC					
+
+					--CHECKING FOR EMPLOYEE WEEKLY OFF COUNT FROM WEEKLYOFF MASTER IF NO DATA FOUND
+					--LOADING DATA FROM EMPLOYEE MASTER
+					IF (SELECT COUNT(*) FROM #EMPWEEKLYOFF WITH(NOLOCK))<=0
+					BEGIN
+						INSERT INTO #EMPWEEKLYOFF 
+						SELECT WeeklyOff1,WeeklyOff2,WeeklyOff1,WeeklyOff2,WeeklyOff1,WeeklyOff2,WeeklyOff1,WeeklyOff2,
+						       WeeklyOff1,WeeklyOff2,'01-01-1900'	FROM COM_CC50051 WITH(NOLOCK)
+						WHERE  NODEID=@EmployeeID
+						DELETE FROM #EMPWEEKLYOFF WHERE ISNULL(WK11,'None')='None' OR ISNULL(WK11,'0')='0'
+						--EMPLOYEE MASTER
+						SET @I=1
+						SET @STRQUERY=''
+						WHILE(@I<=5)
+						BEGIN
+							SET @J=1
+							WHILE(@J<=2)
+							BEGIN
+								SET @COLNAME='WK'+CONVERT(VARCHAR,@I)+CONVERT(VARCHAR,@J)
+								SET @STRQUERY=@STRQUERY+' UPDATE #EMPWEEKLYOFF SET '+ @COLNAME +'='''' where '+ @COLNAME +'=''None'''
+								
+							SET @J=@J+1
+							END
+						SET @I=@I+1
+						END
+						--PRINT @STRQUERY
+						EXEC sp_executesql @STRQUERY
+					END
+					ELSE
+					BEGIN
+						INSERT INTO #EMPWEEKLYOFF1  
+						SELECT WK11,WK12,WK21,WK22, WK31,WK32,WK41,WK42,WK51,WK52,WEFDATE FROM #EMPWEEKLYOFF WITH(NOLOCK)
+						--SET NULL
+						IF (SELECT COUNT(*) FROM #EMPWEEKLYOFF1 WITH(NOLOCK))>0
+						BEGIN
+							SET @I=1
+							SET @STRQUERY=''
+							WHILE(@I<=5)
+							BEGIN
+								SET @J=1
+								WHILE(@J<=2)
+								BEGIN
+									SET @COLNAME='WK'+CONVERT(VARCHAR,@I)+CONVERT(VARCHAR,@J)
+									SET @STRQUERY=@STRQUERY+' update #EMPWEEKLYOFF1 set '+ @COLNAME +'='''' where '+ @COLNAME +'=''None'''
+									
+								SET @J=@J+1
+								END
+							SET @I=@I+1
+							END
+							--PRINT @STRQUERY
+							EXEC sp_executesql @STRQUERY
+						END
+						--EMPLOYEE MASTER
+						IF((SELECT COUNT(*) FROM COM_CC50051 WITH(NOLOCK) WHERE NODEID=@EmployeeID AND (ISNULL(WeeklyOff1,'')<>'' AND ISNULL(WeeklyOff1,'None')<>'None') AND (ISNULL(WeeklyOff2,'')<>'' AND ISNULL(WeeklyOff2,'None')<>'None'))>0)
+						BEGIN
+							SET @I=1
+							SET @STRQUERY=''
+							WHILE(@I<=5)
+							BEGIN
+								SET @J=1
+								WHILE(@J<=2)
+								BEGIN
+									SET @COLNAME='WK'+CONVERT(VARCHAR,@I)+CONVERT(VARCHAR,@J)
+									SET @STRQUERY=@STRQUERY+' UPDATE #EMPWEEKLYOFF1 SET '+ @COLNAME +'=WeeklyOff'+CONVERT(VARCHAR,@J)+' FROM COM_CC50051 WITH(NOLOCK)	WHERE  NODEID='+CONVERT(VARCHAR,@EmployeeID) +' AND ISNULL('+ @COLNAME +','''')=''''  AND ISNULL(WeeklyOff'+CONVERT(VARCHAR,@J)+',''None'')<>''None'''
+								SET @J=@J+1
+								END
+							SET @I=@I+1
+							END
+							--PRINT @STRQUERY
+							EXEC sp_executesql @STRQUERY
+						END
+						ELSE
+						BEGIN
+							--GLOBAL PREFERENCE
+							SET @I=1
+							SET @STRQUERY=''
+							WHILE(@I<=5)
+							BEGIN
+								SET @J=1
+								WHILE(@J<=2)
+								BEGIN
+									SET @COLNAME='WK'+CONVERT(VARCHAR,@I)+CONVERT(VARCHAR,@J)
+									--SET @STRQUERY=@STRQUERY+' update #EMPWEEKLYOFF set '+ @COLNAME +'='''' where '+ @COLNAME +'=''None'''
+									SET @STRQUERY=@STRQUERY+' UPDATE #EMPWEEKLYOFF1 SET '+ @COLNAME +'=isnull(VALUE,'''') FROM ADM_GlobalPreferences WITH(NOLOCK)	WHERE  NAME=''WeeklyOff'+CONVERT(VARCHAR,@J)+''' AND ISNULL('+ @COLNAME +','''')=''''  AND ISNULL(VALUE,''None'')<>''None'''
+								SET @J=@J+1
+								END
+							SET @I=@I+1
+							END
+							--PRINT @STRQUERY
+							EXEC sp_executesql @STRQUERY
+						END
+					END
+					--CHECKING FOR EMPLOYEE WEEKLY OFF COUNT FROM EMPLOYEE MASTER IF NO DATA FOUND
+					--LOADING DATA FROM PREFERENCES
+					DECLARE @FROMWEEKOFDEF BIT
+					IF (SELECT COUNT(*) FROM #EMPWEEKLYOFF WITH(NOLOCK))<=0
+					BEGIN
+						INSERT INTO #WEEKLYOFF 
+						SELECT case isnull(VALUE,'') when '' then 0 else 1 end,VALUE, 0, null,'01-01-1900' FROM ADM_GlobalPreferences WITH(NOLOCK)  WHERE NAME='WeeklyOff1'
+						UNION ALL
+						SELECT case isnull(VALUE,'') when '' then 0 else 1 end,VALUE, 0, null,'01-01-1900'	FROM ADM_GlobalPreferences WITH(NOLOCK)  WHERE NAME='WeeklyOff2'
+						UNION ALL
+						SELECT case isnull(VALUE,'') when '' then 0 else 2 end,VALUE, 0, null,'01-01-1900'	FROM ADM_GlobalPreferences WITH(NOLOCK) WHERE NAME='WeeklyOff1'
+						UNION ALL
+						SELECT case isnull(VALUE,'') when '' then 0 else 2 end,VALUE, 0, null,'01-01-1900'	FROM ADM_GlobalPreferences WITH(NOLOCK) WHERE NAME='WeeklyOff2'					  
+						UNION ALL
+						SELECT case isnull(VALUE,'') when '' then 0 else 3 end,VALUE, 0, null,'01-01-1900'	FROM ADM_GlobalPreferences WITH(NOLOCK) WHERE NAME='WeeklyOff1'
+						UNION ALL
+						SELECT case isnull(VALUE,'') when '' then 0 else 3 end,VALUE, 0, null,'01-01-1900'	FROM ADM_GlobalPreferences WITH(NOLOCK) WHERE NAME='WeeklyOff2'					  
+						UNION ALL
+						SELECT case isnull(VALUE,'') when '' then 0 else 4 end,VALUE, 0, null,'01-01-1900'	FROM ADM_GlobalPreferences WITH(NOLOCK) WHERE NAME='WeeklyOff1'
+						UNION ALL
+						SELECT case isnull(VALUE,'') when '' then 0 else 4 end,VALUE, 0, null,'01-01-1900'	FROM ADM_GlobalPreferences WITH(NOLOCK) WHERE NAME='WeeklyOff2'					  
+						UNION ALL
+						SELECT case isnull(VALUE,'') when '' then 0 else 5 end,VALUE, 0, null,'01-01-1900'	FROM ADM_GlobalPreferences WITH(NOLOCK) WHERE NAME='WeeklyOff1'
+						UNION ALL
+						SELECT case isnull(VALUE,'') when '' then 0 else 5 end,VALUE, 0, null,'01-01-1900'	FROM ADM_GlobalPreferences WITH(NOLOCK) WHERE NAME='WeeklyOff2'		
+					END
+									
+					--LOADING WEEKNO AND DAYNAME INTO ROWS FROM #EMPWEEKLYOFF TABLE (WEEKLYOFF AND EMPLOYEE MASTER)
+					IF (SELECT COUNT(*) FROM #WEEKLYOFF WITH(NOLOCK))<=0
+					BEGIN
+						INSERT INTO #WEEKLYOFF
+							select case isnull(WK11,'') when '' then 0 else 1 end,case isnull(WK11,'') when '' then '' else WK11 end, 0, null,convert(Datetime,WEFDATE) FROM #EMPWEEKLYOFF WITH(NOLOCK)
+						UNION ALL
+							select case isnull(WK12,'') when '' then 0 else 1 end,case isnull(WK12,'') when '' then '' else WK12 end, 0, null,convert(Datetime,WEFDATE) FROM #EMPWEEKLYOFF WITH(NOLOCK)
+						UNION ALL
+							select case isnull(WK21,'') when '' then 0 else 2 end,case isnull(WK21,'') when '' then '' else WK21 end, 0, null,convert(Datetime,WEFDATE) FROM #EMPWEEKLYOFF WITH(NOLOCK)
+						UNION ALL
+							select case isnull(WK22,'') when '' then 0 else 2 end,case isnull(WK22,'') when '' then '' else WK22 end, 0, null,convert(Datetime,WEFDATE) FROM #EMPWEEKLYOFF WITH(NOLOCK)
+						UNION ALL
+							select case isnull(WK31,'') when '' then 0 else 3 end,case isnull(WK31,'') when '' then '' else WK31 end, 0, null,convert(Datetime,WEFDATE) FROM #EMPWEEKLYOFF WITH(NOLOCK)
+						UNION ALL
+							select case isnull(WK32,'') when '' then 0 else 3 end,case isnull(WK32,'') when '' then '' else WK32 end, 0, null,convert(Datetime,WEFDATE) FROM #EMPWEEKLYOFF WITH(NOLOCK)
+						UNION ALL
+							select case isnull(WK41,'') when '' then 0 else 4 end,case isnull(WK41,'') when '' then '' else WK41 end, 0, null,convert(Datetime,WEFDATE) FROM #EMPWEEKLYOFF WITH(NOLOCK)
+						UNION ALL
+							select case isnull(WK42,'') when '' then 0 else 4 end,case isnull(WK42,'') when '' then '' else WK42 end, 0, null,convert(Datetime,WEFDATE) FROM #EMPWEEKLYOFF WITH(NOLOCK)
+						UNION ALL
+							select case isnull(WK51,'') when '' then 0 else 5 end,case isnull(WK51,'') when '' then '' else WK51 end, 0, null,convert(Datetime,WEFDATE) FROM #EMPWEEKLYOFF WITH(NOLOCK)
+						UNION ALL
+							select case isnull(WK52,'') when '' then 0 else 5 end,case isnull(WK52,'') when '' then '' else WK52 end, 0, null,convert(Datetime,WEFDATE) FROM #EMPWEEKLYOFF WITH(NOLOCK)
+					END
+					IF((SELECT COUNT(*) FROM #EMPWEEKLYOFF1 WITH(NOLOCK))>0)
+					BEGIN	
+					SET @FROMWEEKOFDEF=1
+						INSERT INTO #WEEKLYOFF1
+							select case isnull(WK11,'') when '' then 0 else 1 end,case isnull(WK11,'') when '' then '' else WK11 end, 0, null,convert(Datetime,WEFDATE) FROM #EMPWEEKLYOFF1 WITH(NOLOCK)
+						UNION ALL
+							select case isnull(WK12,'') when '' then 0 else 1 end,case isnull(WK12,'') when '' then '' else WK12 end, 0, null,convert(Datetime,WEFDATE) FROM #EMPWEEKLYOFF1 WITH(NOLOCK)
+						UNION ALL
+							select case isnull(WK21,'') when '' then 0 else 2 end,case isnull(WK21,'') when '' then '' else WK21 end, 0, null,convert(Datetime,WEFDATE) FROM #EMPWEEKLYOFF1 WITH(NOLOCK)
+						UNION ALL
+							select case isnull(WK22,'') when '' then 0 else 2 end,case isnull(WK22,'') when '' then '' else WK22 end, 0, null,convert(Datetime,WEFDATE) FROM #EMPWEEKLYOFF1 WITH(NOLOCK)
+						UNION ALL
+							select case isnull(WK31,'') when '' then 0 else 3 end,case isnull(WK31,'') when '' then '' else WK31 end, 0, null,convert(Datetime,WEFDATE) FROM #EMPWEEKLYOFF1 WITH(NOLOCK)
+						UNION ALL
+							select case isnull(WK32,'') when '' then 0 else 3 end,case isnull(WK32,'') when '' then '' else WK32 end, 0, null,convert(Datetime,WEFDATE) FROM #EMPWEEKLYOFF1 WITH(NOLOCK)
+						UNION ALL
+							select case isnull(WK41,'') when '' then 0 else 4 end,case isnull(WK41,'') when '' then '' else WK41 end, 0, null,convert(Datetime,WEFDATE) FROM #EMPWEEKLYOFF1 WITH(NOLOCK)
+						UNION ALL
+							select case isnull(WK42,'') when '' then 0 else 4 end,case isnull(WK42,'') when '' then '' else WK42 end, 0, null,convert(Datetime,WEFDATE) FROM #EMPWEEKLYOFF1 WITH(NOLOCK)
+						UNION ALL
+							select case isnull(WK51,'') when '' then 0 else 5 end,case isnull(WK51,'') when '' then '' else WK51 end, 0, null,convert(Datetime,WEFDATE) FROM #EMPWEEKLYOFF1 WITH(NOLOCK)
+						UNION ALL
+							select case isnull(WK52,'') when '' then 0 else 5 end,case isnull(WK52,'') when '' then '' else WK52 end, 0, null,convert(Datetime,WEFDATE) FROM #EMPWEEKLYOFF1 WITH(NOLOCK)
+					END
+					--LOADING WEEKDATE,DAYNAME AND WEEKNO FOR SELECTED DATERANGE
+					--select * from #WEEKLYOFF
+					print 'eek'
+					CREATE TABLE #WEEKOFFCOUNT  (SNID INT IDENTITY(1,1) PRIMARY KEY, ID INT ,WEEKDATE DATETIME,DAYNAME VARCHAR(50),WEEKNO INT,COUNT INT,WEEKNOMANUAL INT)
+					DECLARE @STARTDATE DATETIME,@STARTDATE2 DATETIME,@ENDATE2 DATETIME
+				   	DECLARE @MRC2 AS INT,@MC2 AS INT,@MID2 INT
+				   	
+				   	SET @MC2=1
+				   	
+				   	SELECT @MRC2=COUNT(*) FROM #MONTHTAB WITH(NOLOCK)
+				   	WHILE (@MC2<=@MRC2)
+				   	BEGIN
+				   		SELECT @STARTDATE2=CONVERT(DATETIME,STDATE),@ENDATE2=CONVERT(DATETIME,EDDATE) FROM #MONTHTAB WITH(NOLOCK) WHERE ID=@MC2
+						
+				   		;WITH DATERANGE AS
+						(
+						SELECT @STARTDATE2 AS DT,1 AS ID
+						UNION ALL
+						SELECT DATEADD(DD,1,DT),DATERANGE.ID+1 FROM DATERANGE WHERE ID<=DATEDIFF("d",convert(varchar,@STARTDATE2,101),convert(varchar,@ENDATE2,101))
+						)
+						
+						INSERT INTO #WEEKOFFCOUNT
+						SELECT ROW_NUMBER() OVER (ORDER BY DT) AS ID,DT AS WEEKDATE,DATENAME(DW,DT) AS DAY,0,0,0 FROM DATERANGE	--WHERE (DATEPART(DW,DT)=1 OR DATEPART(DW,DT)=7)
+				   	SET @MC2=@MC2+1
+				   	END
+
+						------UPDATING WEEKNO IN WEEKOFFCOUNT TABLE BASED ON WEEKDATE OF MONTH
+						
+						--UPDATE @WEEKOFFCOUNT SET WEEKNO=((datepart(day,WEEKDATE)-1)/7)+1
+						--------------------
+						declare @PMS int,@PME int
+						select @PMS=Value From ADM_GlobalPreferences WITH(NOLOCK) where name='PayDayStart'
+						select @PME=Value From ADM_GlobalPreferences WITH(NOLOCK) where name='PayDayEnd'
+
+						declare @PS INT,@PE INT
+						declare @wd datetime,@TSwd datetime,@TEwd datetime,@dme datetime
+						declare @wno int
+						set @wno=0
+						select @TSwd=MIN(Weekdate),@TEwd=MAX(Weekdate) FROM #WEEKOFFCOUNT WITH(NOLOCK)
+						--SET @TSwd='01-Nov-2019' SET @TEwd='01-Dec-2019'
+						WHILE(@TSwd<=@TEwd)
+						BEGIN
+							IF(DAY(@TSwd)=@PMS)
+							BEGIN
+								set @wno=1
+								Update T SET WEEKNo=@wno FROM #WEEKOFFCOUNT T WITH(NOLOCK) WHERE WeekDate=@TSwd
+								set @dme=dateadd(day,-1,dateadd(m,1,@TSwd))
+								
+								Update T SET WEEKNo=@wno FROM #WEEKOFFCOUNT T WITH(NOLOCK)
+								where WeekDate between @TSwd AND DATEADD(day,6,@TSwd)
+								
+								SET @TSwd=DATEADD(day,7,@TSwd)
+								set @wno=@wno+1
+							END
+							ELSE
+							BEGIN
+								if(@wno=0)
+									SET @TSwd=DATEADD(day,1,@TSwd)
+								else
+								begin
+									IF(DAY(DATEADD(day,6,@TSwd))<=@PME)
+									begin
+										Update T SET WEEKNo=@wno FROM #WEEKOFFCOUNT T WITH(NOLOCK)
+										where WeekDate between @TSwd AND DATEADD(day,6,@TSwd)
+										SET @TSwd=DATEADD(day,7,@TSwd)
+										set @wno=@wno+1
+
+										if(DATEADD(day,6,@TSwd)>@dme)
+										BEGIN
+											Update T SET WEEKNo=@wno FROM #WEEKOFFCOUNT T WITH(NOLOCK)
+											where WeekDate between @TSwd AND @dme
+											SET @TSwd=DATEADD(day,1,@dme)
+										END
+										
+									end
+									else 
+									begin
+										Update T SET WEEKNo=@wno FROM #WEEKOFFCOUNT T WITH(NOLOCK)
+										where WeekDate between @TSwd AND @dme
+										SET @TSwd=DATEADD(day,1,@dme)
+									end
+									
+								end
+							END	
+							
+						END 
+
+						--------------------------
+						--select * from @WEEKOFFCOUNT
+						--UPDATING COUNT TO 1 IF WEEKNO AND DAYNAME IS WEEKLYOFF
+						IF(@FROMWEEKOFDEF=1)
+						BEGIN
+
+						UPDATE WEEKOFFCOUNT SET WEEKOFFCOUNT.count=1 FROM #WEEKOFFCOUNT WEEKOFFCOUNT WITH(NOLOCK) 
+						inner join #WEEKLYOFF WEEKLYOFF WITH(NOLOCK) on WEEKLYOFF.WEEKLYWEEKOFFNO=WEEKOFFCOUNT.WEEKNO  
+						AND upper(WEEKLYOFF.DAYNAME)=upper(WEEKOFFCOUNT.DAYNAME) --AND WEEKOFFCOUNT.WEEKDATE=WEEKLYOFF.WKDATE
+						AND WeekDate Between @FromDate AND @ToDate 
+						AND WEEKLYOFF.WEFDate=(SELECT TOP 1  DUEDATE FROM #TW WITH(NOLOCK) WHERE DCALPHA1='No' AND DUEDATE<=WEEKOFFCOUNT.WeekDate ORDER BY DUEDATE DESC)
+
+						END
+						ELSE
+						BEGIN
+							UPDATE WEEKOFFCOUNT SET WEEKOFFCOUNT.count=1 FROM #WEEKOFFCOUNT WEEKOFFCOUNT WITH(NOLOCK) inner join #WEEKLYOFF WEEKLYOFF WITH(NOLOCK) on WEEKLYOFF.WEEKLYWEEKOFFNO=WEEKOFFCOUNT.WEEKNO  AND upper(WEEKLYOFF.DAYNAME)=upper(WEEKOFFCOUNT.DAYNAME) 
+						END
+							----------------------- 
+
+
+						--IF((select COUNT(*) from #WEEKLYOFF1)>0)
+						--BEGIN
+						--	UPDATE WEEKOFFCOUNT SET WEEKOFFCOUNT.count=1 FROM @WEEKOFFCOUNT WEEKOFFCOUNT inner join #WEEKLYOFF1 WEEKLYOFF on WEEKLYOFF.WEEKLYWEEKOFFNO=WEEKOFFCOUNT.WEEKNO AND upper(WEEKLYOFF.DAYNAME)=upper(WEEKOFFCOUNT.DAYNAME)
+						--		   AND convert(datetime,WEEKOFFCOUNT.weekdate)<=CONVERT(DATETIME,WEFDATE)
+						--END	
+							 
+					--COUNTING WEEKLYOFFS IN GIVEN DATERANGE
+					SELECT @WEEKLYOFFCOUNT=COUNT(*) FROM #WEEKOFFCOUNT WITH(NOLOCK) WHERE COUNT=1 and convert(DATETIME,WEEKDATE) between CONVERT(DATETIME,@FromDate) and CONVERT(DATETIME,@ToDate)
+				--END WEEKLYOFF COUNT
+
+				--select * from @WEEKOFFCOUNT
+
+				--START : UPDATING @DATESAPPLIEDCOUNT TABLE 'COUNT' COLUMN TO '3- FOR WEEKLYOFF' AND '4- FOR HOLIDAY'
+				--UPDATING COUNT TO 3 IF DATEAPPLIEDRANGE DATE IS WEEKLYOFF
+				UPDATE DATESCOUNT SET DATESCOUNT.count=3 FROM #WEEKOFFCOUNT WEEKOFFCOUNT WITH(NOLOCK) inner join #DATESCOUNT DATESCOUNT WITH(NOLOCK) on CONVERT(DATETIME,DATESCOUNT.date1)= CONVERT(DATETIME,WEEKOFFCOUNT.weekdate) and WEEKOFFCOUNT.count=1
+				
+				
+				
+-----------------------------
+--holidays Calculation
+CREATE table #TEmp  (ID int Identity(1,1),WEEKDATE Nvarchar(max),Remarks nvarchar(max))
+DECLARE @HolidayBasedOn NVARCHAR(MAX),@WhereCond NVARCHAR(MAX),@HCCID INT,@CCType NVARCHAR(50),@SQL nvarchar(max)
+
+SELECT @HolidayBasedOn=ISNULL(Value,'') From ADM_GlobalPreferences WITH(NOLOCK) Where Name='HolidaysBasedOn'
+SET @SQL='' SET @WhereCond=''
+IF(@HolidayBasedOn<>'')
+BEGIN
+	DECLARE @HBOnH TABLE (HCCID INT)  
+	--INSERT INTO @HBOnH  
+	--EXEC SPSplitString @HolidayBasedOn,','  
+
+	-----------
+	declare @Data nvarchar(max),@Pos INT ,@SplitChar nvarchar(2)
+	SET @SplitChar=','
+	SET @HolidayBasedOn=LTRIM(RTRIM(@HolidayBasedOn))+@SplitChar  
+	SET @Pos=CHARINDEX(@SplitChar,@HolidayBasedOn,1)  
+	IF REPLACE(@HolidayBasedOn,@SplitChar,'')<>''  
+	BEGIN  
+	WHILE @Pos > 0  
+	BEGIN  
+	SET @Data=LTRIM(RTRIM(LEFT(@HolidayBasedOn,@Pos-1)))  
+	INSERT INTO @HBOnH VALUES(@Data)  
+	SET @HolidayBasedOn=RIGHT(@HolidayBasedOn,LEN(@HolidayBasedOn)-@Pos)  
+	SET @Pos=CHARINDEX(@SplitChar,@HolidayBasedOn,1)  
+	END    
+	END  
+	-----------
+
+	DECLARE CUR CURSOR FOR SELECT HCCID FROM @HBOnH
+	OPEN CUR
+	FETCH NEXT FROM CUR INTO @HCCID
+	WHILE @@FETCH_STATUS=0
+	BEGIN
+		IF EXISTS(SELECT CostCenterColID FROM ADM_COSTCENTERDEF WITH(NOLOCK) WHERE CostCenterID=50051 AND ColumnCostCenterID=@HCCID AND IsColumnInUse=1)
+		BEGIN
+			SELECT @CCType= ISNULL(UserProbableValues,'') FROM ADM_COSTCENTERDEF WITH(NOLOCK) WHERE CostCenterID=50051 AND ColumnCostCenterID=@HCCID AND IsColumnInUse=1  
+			IF(@CCType='')
+			BEGIN
+				SET @WhereCond=@WhereCond+' 
+											AND (c.dcCCNID'+CONVERT(NVARCHAR,(@HCCID-50000)) +' IN (1) OR c.dcCCNID'+CONVERT(NVARCHAR,(@HCCID-50000)) +' IN (Select CCNID'+CONVERT(NVARCHAR,(@HCCID-50000))+' FROM COM_CCCCData WITH(NOLOCK) WHERE CostCenterID=50051 AND NodeID IN('+convert(nvarchar,@EmployeeID)+'))) '
+			END
+			ELSE
+			BEGIN
+				SET @WhereCond=@WhereCond+' 
+											AND (c.dcCCNID'+CONVERT(NVARCHAR,(@HCCID-50000)) +' IN (1) OR c.dcCCNID'+CONVERT(NVARCHAR,(@HCCID-50000)) +' IN (SELECT DISTINCT HistoryNodeID FROM COM_HistoryDetails WITH(NOLOCK) 
+											WHERE NodeID IN('+convert(nvarchar,@EmployeeID)+') AND CostCenterID=50051 AND HistoryCCID='+CONVERT(NVARCHAR,@HCCID)+'   
+											AND (FromDate<=CONVERT(FLOAT,CONVERT(DATETIME,'''+CONVERT(NVARCHAR,@PayrollDate)+''')) OR 
+												FromDate BETWEEN CONVERT(FLOAT,CONVERT(DATETIME,'''+CONVERT(NVARCHAR,@PayrollStart)+''')) AND CONVERT(FLOAT,CONVERT(DATETIME,'''+CONVERT(NVARCHAR,@PayrollEnd)+'''))) 
+											AND (ToDate>=CONVERT(FLOAT,CONVERT(DATETIME,'''+CONVERT(NVARCHAR,@PayrollDate)+''')) OR ToDate IS NULL) )) '
+			END
+		END
+	FETCH NEXT FROM CUR INTO @HCCID
+	END
+	CLOSE CUR
+	DEALLOCATE CUR
+	
+END
+SET @SQL='INSERT INTO #TEmp
+SELECT b.dcalpha1,b.dcalpha2
+FROM INV_DOCDETAILS a WITH(NOLOCK)
+Left Join COM_DocTextData b WITH(NOLOCK) on b.InvDocdetailsID=a.InvDocDetailsId
+Left Join COM_DocCCData c WITH(NOLOCK) on c.InvDocdetailsID=a.InvDocDetailsId
+Where a.StatusID=369 AND a.CostCenterID=40051  and isdate(b.dcAlpha1)=1 And convert(datetime,b.dcalpha1) BETWEEN '''+CONVERT(NVARCHAR,@FromDate)+''' AND '''+CONVERT(NVARCHAR,@ToDate)+''''
+IF(@WhereCond IS NOT NULL AND @WhereCond <>'' AND LEN(@WhereCond)>0)
+BEGIN
+	SET @SQL=@SQL+ @WhereCond
+END
+--PRINT @SQL
+
+--Declare @TEmp table (ID int Identity(1,1),WEEKDATE Nvarchar(max),Remarks nvarchar(max))
+--insert into @TEmp
+EXEC sp_executesql @SQL
+
+UPDATE DATESCOUNT SET DATESCOUNT.count=4 FROM #DATESCOUNT DATESCOUNT WITH(NOLOCK)
+inner join #TEmp TD WITH(NOLOCK) on CONVERT(DATETIME,DATESCOUNT.DATE1)=CONVERT(DATETIME,TD.WEEKDATE)
+
+
+-----------------------------
+
+							
+				--END : UPDATING @DATESAPPLIEDCOUNT TABLE 'COUNT' COLUMN TO '3- FOR WEEKLYOFF' AND '4- FOR HOLIDAY'
+				print 'inc'
+				print @INCREXC
+				--SET FLAG FOR ACTUAL DAYS
+				--FOR Grade
+				declare @Grade int,@EMPDOJ datetime
+				--EMPLOYEE DATE OF JOINING
+				SELECT @EMPDOJ=CONVERT(DATETIME,DOJ) FROM COM_CC50051 WITH(NOLOCK) WHERE NODEID=@EmployeeID
+				
+				DECLARE @IsGradeWiseMP BIT
+				SELECT @IsGradeWiseMP=CONVERT(BIT,Value) FROM ADM_GlobalPreferences WITH(NOLOCK) WHERE Name='GradeWiseMonthlyPayroll'
+				IF @IsGradeWiseMP=1
+				BEGIN
+					IF((SELECT COUNT(*) FROM ADM_CostCenterDef WITH(NOLOCK) WHERE CostCenterID=50051 and SysColumnName ='CCNID53' and IsColumnInUse=1 and UserProbableValues='H')>0)
+					BEGIN
+						SELECT @Grade=ISNULL(HistoryNodeID,0) FROM COM_HistoryDetails WITH(NOLOCK) WHERE NodeID=@EmployeeID AND CostCenterID=50051 AND HistoryCCID=50053 AND (FromDate<=CONVERT(FLOAT,CONVERT(DATETIME,@PayrollDate))) AND (ToDate>=CONVERT(FLOAT,CONVERT(DATETIME,@PayrollDate)) OR ToDate IS NULL)
+						IF(CONVERT(DATETIME,@EMPDOJ)>CONVERT(DATETIME,@PayrollDate) AND ISNULL(@Grade,0)=0)
+							SELECT @Grade=ISNULL(HistoryNodeID,0) FROM COM_HistoryDetails WITH(NOLOCK) WHERE NodeID=@EmployeeID AND CostCenterID=50051 AND HistoryCCID=50053 AND (FromDate<=CONVERT(FLOAT,CONVERT(DATETIME,@EMPDOJ))) AND (ToDate>=CONVERT(FLOAT,CONVERT(DATETIME,@EMPDOJ)) OR ToDate IS NULL)
+					END
+					ELSE
+						SELECT @Grade=ISNULL(CCNID53,0) FROM COM_CCCCDATA WITH(NOLOCK) WHERE COSTCENTERID=50051 AND NODEID=@EmployeeID
+				END
+				ELSE
+				BEGIN
+					SET @Grade=1
+				END
+					
+				SELECT @INCREXC=ISNULL(INCLUDEREXCLUDE,'') FROM COM_CC50054 WITH(NOLOCK)
+				WHERE  GRADEID=@GRADE AND COMPONENTID=@LeaveType AND PAYROLLDATE=(SELECT MAX(PAYROLLDATE) FROM COM_CC50054  WITH(NOLOCK) WHERE CONVERT(DATETIME,PAYROLLDATE)<=CONVERT(DATETIME,@PayrollDate) AND GradeID=@Grade)
+				SET @IC=1
+				SELECT @TRC=COUNT(*) FROM #DATESCOUNT WITH(NOLOCK)
+				WHILE(@IC<=@TRC)
+				BEGIN
+					SELECT @DTT=DATE1 FROM #DATESCOUNT WITH(NOLOCK) WHERE SNO=@IC
+					SELECT @RC=COUNT(*) FROM #DATESAPPLIEDCOUNT WITH(NOLOCK) WHERE CONVERT(DATETIME,@DTT) between CONVERT(DATETIME,FDATE) and CONVERT(DATETIME,TDATE)
+					--6 WEEKLY OFF / 7 HOLIDAY / 8 EXCLUDE BOTH
+					IF ISNULL(@INCREXC,'')='IncludeHolidays' OR ISNULL(@INCREXC,'')='ExcludeWeeklyOffs'
+						UPDATE T SET FLAG=0 FROM #DATESCOUNT T WITH(NOLOCK) WHERE CONVERT(DATETIME,DATE1)=CONVERT(DATETIME,@DTT) and ISNULL(@RC,0)>0 AND COUNT=3
+					ELSE IF ISNULL(@INCREXC,'')='IncludeWeeklyOffs' OR ISNULL(@INCREXC,'')='ExcludeHolidays'
+						UPDATE T SET FLAG=0 FROM #DATESCOUNT T WITH(NOLOCK) WHERE CONVERT(DATETIME,DATE1)=CONVERT(DATETIME,@DTT) and ISNULL(@RC,0)>0 AND COUNT=4
+					ELSE IF ISNULL(@INCREXC,'')='IncludeBoth'
+						UPDATE T SET FLAG=1 FROM #DATESCOUNT T WITH(NOLOCK) WHERE CONVERT(DATETIME,DATE1)=CONVERT(DATETIME,@DTT) and ISNULL(@RC,0)>0
+					ELSE IF ISNULL(@INCREXC,'')='ExcludeBoth'
+						UPDATE T SET FLAG=0,IncExc='EB' FROM #DATESCOUNT T WITH(NOLOCK)  WHERE CONVERT(DATETIME,DATE1)=CONVERT(DATETIME,@DTT) and ISNULL(@RC,0)>0 AND COUNT IN (3,4)
+					
+				SET @IC=@IC+1
+				END
+				--
+				--select * from @DATESAPPLIEDCOUNT 
+				--select * FROM @DATESCOUNT
+				DECLARE @DAYSSUM DECIMAL(9,2)
+				SET @DAYSSUM=0
+				SELECT @DAYSSUM=ISNULL(SUM(NOOFDAYS),0) FROM #DATESCOUNT WITH(NOLOCK) WHERE COUNT=1 AND NOOFDAYS=0.5 and convert(datetime,date1) between convert(datetime,@FromDate) and convert(datetime,@ToDate)
+				--select * FROM @DATESCOUNT WHERE FLAG=1 AND count>=1 and isnull(IncExc,'')=''
+				SELECT @CurrYearLeavesTakenOP=COUNT(*) FROM #DATESCOUNT WITH(NOLOCK) WHERE FLAG=1 AND count>=1 and isnull(IncExc,'')='' and convert(datetime,date1) between convert(datetime,@FromDate) and convert(datetime,@ToDate)
+				SET @CurrYearLeavesTakenOP=isnull(@CurrYearLeavesTakenOP,0)-isnull(@DAYSSUM,0)
+				
+				declare @LPCnt FLOAT 
+				SET @LPCnt=0
+				SELECT @LPCnt=SUM(NoOfDays) FROM #DATESAPPLIEDCOUNT WITH(NOLOCK)  
+				WHERE PostedFrom='LatesProcessing' 
+				AND FDATE IN( 
+				SELECT DATE1 FROM #DATESCOUNT WITH(NOLOCK) --WHERE FLAG=1 AND count>=1 and isnull(IncExc,'')=''
+				)
+				SET @CurrYearLeavesTakenOP+= ISNULL(@LPCnt,0)
+				
+				SELECT @NoOfHolidayOP=COUNT(*) FROM #DATESCOUNT WITH(NOLOCK) WHERE count=4 and convert(DATETIME,DATE1) between CONVERT(DATETIME,@FromDate) and CONVERT(DATETIME,@ToDate)
+				SELECT @NoOfWkOffsOP=COUNT(*) FROM #DATESCOUNT WITH(NOLOCK) WHERE count=3 and convert(DATETIME,DATE1) between CONVERT(DATETIME,@FromDate) and CONVERT(DATETIME,@ToDate)
+				SET @EncahsedLeavesOP=ISNULL(@ExstAppliedEncashdays,0)
+				--select * from @DATESCOUNT
+				DROP TABLE #DATESAPPLIEDCOUNT
+				DROP TABLE #DATESCOUNT 
+				DROP TABLE #EMPWEEKLYOFF
+				DROP TABLE #WEEKLYOFF
+				DROP TABLE #EMPWEEKLYOFF1
+				DROP TABLE #WEEKLYOFF1
+				DROP TABLE #TW
+				DROP TABLE #WEEKOFFCOUNT 
+				DROP TABLE #MONTHTAB 
+				DROP TABLE #TEmp
+			END	--FROMDATE AND TODATE	
+
+			--SELECT @CurrYearLeavesTakenOP ,@NoOfHolidayOP ,@NoOfWkOffsOP ,@EncahsedLeavesOP 
+
+SET NOCOUNT OFF;  						
+END
+
+GO

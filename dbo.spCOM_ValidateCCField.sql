@@ -1,0 +1,288 @@
+﻿USE PACT2C276
+GO
+SET ANSI_NULLS, QUOTED_IDENTIFIER ON
+GO
+CREATE PROCEDURE [dbo].[spCOM_ValidateCCField]
+	@CCColID [int],
+	@DataType [nvarchar](50),
+	@RENAME [nvarchar](100),
+	@Mandatory [int],
+	@CostCenterID [int],
+	@IsInventory [int],
+	@Flag [int],
+	@LangID [int]
+WITH ENCRYPTION, EXECUTE AS CALLER
+AS
+BEGIN TRY    
+SET NOCOUNT ON;
+
+--------------------------------------------------------------------------------
+DECLARE @STRQRY NVARCHAR(MAX),@TRTABLENAME NVARCHAR(100),@COLTABLENAME NVARCHAR(100),@JOINCOLUMNNAME NVARCHAR(100),@STRQRY1 NVARCHAR(MAX)
+DECLARE @EXSTDATATYPE NVARCHAR(50),@USERCOLUMNNAME NVARCHAR(100),@FORMULAMSG NVARCHAR(MAX),@SysColumnName nvarchar(100),@COLCOSTCENTERID INT
+SET @STRQRY=''
+SET @STRQRY1=''
+SET @TRTABLENAME=''
+SET @COLTABLENAME=''
+SET @JOINCOLUMNNAME=''
+SET @FORMULAMSG=''
+SET @USERCOLUMNNAME=''
+
+
+
+SELECT @TRTABLENAME=TableName FROM ADM_FEATURES WITH(NOLOCK) WHERE FeatureID=@CostCenterID 
+IF(@CostCenterID=2)
+	SET @JOINCOLUMNNAME='ACCOUNTID'
+ELSE IF(@CostCenterID=3)
+	SET @JOINCOLUMNNAME='PRODUCTID'
+ELSE IF(@CostCenterID=93)
+	SET @JOINCOLUMNNAME='UnitID'
+ELSE IF(@CostCenterID=94)
+	SET @JOINCOLUMNNAME='TenantID'
+ELSE IF(@CostCenterID=95)
+	SET @JOINCOLUMNNAME='ContractID'
+ELSE IF(@CostCenterID=86)
+	SET @JOINCOLUMNNAME='LeadID'
+ELSE IF(@CostCenterID=89)
+	SET @JOINCOLUMNNAME='OpportunityID'		
+ELSE IF(@CostCenterID=73)
+	SET @JOINCOLUMNNAME='CaseID'			
+ELSE IF(@CostCenterID=65)
+	SET @JOINCOLUMNNAME='ContactID'	
+ELSE IF(@CostCenterID=88)
+	SET @JOINCOLUMNNAME='CampaignID'					
+ELSE IF(@CostCenterID=76)
+	SET @JOINCOLUMNNAME='BOMID'		
+ELSE			
+	SET @JOINCOLUMNNAME='NODEID'
+	
+
+SELECT @SysColumnName=SysColumnName,@USERCOLUMNNAME=USERCOLUMNNAME,@COLCOSTCENTERID=COLUMNCOSTCENTERID FROM ADM_COSTCENTERDEF WITH(NOLOCK) WHERE COSTCENTERID=@CostCenterID AND COSTCENTERCOLID=@CCColID	
+PRINT @SysColumnName
+IF(@SysColumnName LIKE 'CCNID%')
+		SET @COLTABLENAME='COM_CCCCData T1 WITH(NOLOCK) '
+		
+IF(@CostCenterID>50000)
+BEGIN		
+	 IF(@SysColumnName='BasicMonthly' OR @SysColumnName='BasicWeekly' OR @SysColumnName='BasicHourly' 
+			OR @SysColumnName='BasicDaily' 	OR @SysColumnName='NetSalary' OR @SysColumnName='AnnualCTC')
+	BEGIN
+		SET @COLTABLENAME='PAY_EmpPay T1 WITH(NOLOCK) '
+	END
+END	
+ELSE IF(@CostCenterID=2)
+BEGIN	
+	IF(@SysColumnName LIKE 'ACALPHA%')
+		SET @COLTABLENAME='ACC_AccountsExtended T1 WITH(NOLOCK) '
+END	
+ELSE IF(@CostCenterID=3)
+BEGIN	
+	IF(@SysColumnName LIKE 'PTALPHA%')
+		SET @COLTABLENAME='INV_ProductExtended T1 WITH(NOLOCK) '
+END	
+ELSE IF(@CostCenterID=92)
+BEGIN	
+	IF(@SysColumnName LIKE 'ALPHA%')
+		SET @COLTABLENAME='REN_PropertyExtended T1 WITH(NOLOCK) '
+END	
+ELSE IF(@CostCenterID=93)
+BEGIN	
+	IF(@SysColumnName LIKE 'ALPHA%')
+		SET @COLTABLENAME='REN_UnitsExtended T1 WITH(NOLOCK) '
+END	
+ELSE IF(@CostCenterID=94)
+BEGIN	
+	IF(@SysColumnName LIKE 'ALPHA%')
+		SET @COLTABLENAME='REN_TenantExtended T1 WITH(NOLOCK) '
+END	
+ELSE IF(@CostCenterID=95)
+BEGIN	
+	IF(@SysColumnName LIKE 'ALPHA%')
+		SET @COLTABLENAME='REN_ContractExtended T1 WITH(NOLOCK) '
+END	
+ELSE IF(@CostCenterID=86)
+BEGIN	
+	IF(@SysColumnName LIKE 'LDALPHA%')
+		SET @COLTABLENAME='CRM_LeadsExtended T1 WITH(NOLOCK) '
+END	
+ELSE IF(@CostCenterID=89)
+BEGIN	
+	IF(@SysColumnName LIKE 'opALPHA%')
+		SET @COLTABLENAME='CRM_OpportunitiesExtended T1 WITH(NOLOCK) '
+END
+ELSE IF(@CostCenterID=73)
+BEGIN	
+	IF(@SysColumnName LIKE 'acALPHA%')
+		SET @COLTABLENAME='CRM_CasesExtended T1 WITH(NOLOCK) '
+END
+ELSE IF(@CostCenterID=65)
+BEGIN	
+	IF(@SysColumnName LIKE 'acALPHA%')
+		SET @COLTABLENAME='COM_ContactsExtended T1 WITH(NOLOCK) '
+END
+ELSE IF(@CostCenterID=88)
+BEGIN	
+	IF(@SysColumnName LIKE 'caALPHA%')
+		SET @COLTABLENAME='CRM_CampaignsExtended T1 WITH(NOLOCK) '
+END
+ELSE IF(@CostCenterID=76)
+BEGIN	
+	IF(@SysColumnName LIKE 'acALPHA%')
+		SET @COLTABLENAME='PRD_BillOfMaterialExtended T1 WITH(NOLOCK) '
+END
+	
+IF(ISNULL(@TRTABLENAME,'')<>'')
+BEGIN		
+	IF(@Flag=0)
+	BEGIN
+		--PRINT 'DELETE COLUMN'
+		SET @STRQRY='IF((SELECT COUNT(*) FROM '+ @TRTABLENAME +' ID WITH(NOLOCK) '
+		IF(ISNULL(@COLTABLENAME,'')<>'')
+			SET @STRQRY=@STRQRY+','+ @COLTABLENAME +''
+			
+		SET @STRQRY=@STRQRY+' WHERE ISNULL('+ @SysColumnName +','''')<>'''' '		 
+		
+		IF(ISNULL(@COLTABLENAME,'')<>'' AND @COLTABLENAME LIKE 'COM_CCCCData%')				 
+			SET @STRQRY=@STRQRY+' AND ID.'+ @JOINCOLUMNNAME +'=T1.'+ @JOINCOLUMNNAME +'  AND T1.COSTCENTERID='+ CONVERT(VARCHAR,@CostCenterID) +''
+		ELSE IF(ISNULL(@COLTABLENAME,'')<>'')
+		BEGIN
+			IF(@CostCenterID=92 OR @CostCenterID=95 OR @CostCenterID=76)
+				SET @STRQRY=@STRQRY+' AND ID.'+ @JOINCOLUMNNAME +'=T1.NODEID '
+			ELSE IF(@CostCenterID=50051)
+				SET @STRQRY=@STRQRY+' AND ID.'+ @JOINCOLUMNNAME +'=T1.EMPLOYEEID '
+			ELSE
+				SET @STRQRY=@STRQRY+' AND ID.'+ @JOINCOLUMNNAME +'=T1.'+ @JOINCOLUMNNAME +' '
+		END
+			
+		 SET @STRQRY=@STRQRY+')>0)'	
+		SET @STRQRY=@STRQRY +' SELECT ''Data exists for the selected column -'+ CONVERT(NVARCHAR,@USERCOLUMNNAME)+''' AS Msg'
+		PRINT (@STRQRY)
+		EXEC (@STRqRY)
+	END
+	ELSE IF(@Flag=1)
+	BEGIN
+		--PRINT 'DATATYPE CHANGE'
+		SELECT @EXSTDATATYPE=UserColumnType FROM ADM_COSTCENTERDEF WITH(NOLOCK) WHERE COSTCENTERID=@CostCenterID AND SYSCOLUMNNAME=@SysColumnName
+		PRINT @EXSTDATATYPE
+		print @DataType
+		print @SysColumnName
+		
+		SET @STRQRY='IF((SELECT COUNT(*) FROM '+ @TRTABLENAME +' ID WITH(NOLOCK) '
+		IF(ISNULL(@COLTABLENAME,'')<>'')
+			SET @STRQRY=@STRQRY+','+ @COLTABLENAME +''
+			
+		IF(ISNULL(@COLTABLENAME,'')<>'' AND @COLTABLENAME LIKE 'COM_CCCCData%')				 
+			SET @STRQRY1=@STRQRY1+' AND ID.'+ @JOINCOLUMNNAME +'=T1.'+ @JOINCOLUMNNAME +'  AND T1.COSTCENTERID='+ CONVERT(VARCHAR,@CostCenterID) +''
+		ELSE IF(ISNULL(@COLTABLENAME,'')<>'')
+		BEGIN
+			IF(@CostCenterID=92 OR @CostCenterID=95 OR @CostCenterID=76)
+				SET @STRQRY1=@STRQRY1+' AND ID.'+ @JOINCOLUMNNAME +'=T1.NODEID '
+			ELSE IF(@CostCenterID=50051)
+				SET @STRQRY1=@STRQRY1+' AND ID.'+ @JOINCOLUMNNAME +'=T1.EMPLOYEEID '
+			ELSE
+				SET @STRQRY1=@STRQRY1+' AND ID.'+ @JOINCOLUMNNAME +'=T1.'+ @JOINCOLUMNNAME +' '
+		END	
+		
+		IF(@EXSTDATATYPE<>@DataType AND @SysColumnName LIKE '%ALPHA%')
+		BEGIN						
+			IF((@EXSTDATATYPE='TEXT' AND @DataType='Combobox') OR 
+			   (@EXSTDATATYPE='Combobox' AND @DataType='TEXT') OR																								
+			   (@EXSTDATATYPE='TEXT' AND @DataType='EditableCombobox') OR
+			   (@EXSTDATATYPE='EditableCombobox' AND @DataType='TEXT') OR
+			   (@EXSTDATATYPE='Combobox' AND @DataType='EditableCombobox') OR 
+			   (@EXSTDATATYPE='EditableCombobox' AND @DataType='Combobox'))
+			BEGIN			
+				SET @STRQRY=@STRQRY+' WHERE  ISNULL('+ @SysColumnName +','''')<>'''' AND ISNUMERIC('+ @SysColumnName +')=0 '		 
+				SET @STRQRY=@STRQRY+@STRQRY1+')>0)'					
+				SET @STRQRY=@STRQRY +' SELECT ''Data exists, cannot change the datatype -'+ CONVERT(NVARCHAR,@EXSTDATATYPE)+''' AS Msg'
+				PRINT (@STRQRY)
+				EXEC (@STRQRY)
+			END 
+			ELSE IF(((@EXSTDATATYPE='TEXT' OR @EXSTDATATYPE='Combobox' OR @EXSTDATATYPE='EditableCombobox') AND (@DataType='INT' OR @DataType='FLOAT'  OR @DataType='NUMERIC' )))
+			BEGIN
+				SET @STRQRY=@STRQRY+' WHERE  ISNULL('+ @SysColumnName +','''')<>'''' AND ISNUMERIC('+ @SysColumnName +')=0 '		 
+				SET @STRQRY=@STRQRY+@STRQRY1+')>0)'	
+				SET @STRQRY=@STRQRY +' SELECT ''Data exists, cannot change the datatype -'+ CONVERT(NVARCHAR,@EXSTDATATYPE)+''' AS Msg'
+				--PRINT (@STRQRY)
+				EXEC (@STRQRY)
+			END 
+			ELSE IF(((@EXSTDATATYPE='INT' OR @EXSTDATATYPE='FLOAT'  OR @EXSTDATATYPE='NUMERIC' ) AND (@DataType='TEXT' OR @DataType='Combobox' OR @DataType='EditableCombobox' )))
+			BEGIN
+				SET @STRQRY=@STRQRY+' WHERE  ISNULL('+ @SysColumnName +','''')<>'''' AND ISNUMERIC('+ @SysColumnName +')=1 '		 
+				SET @STRQRY=@STRQRY+@STRQRY1+')>0)'	
+				SET @STRQRY=@STRQRY +' SELECT ''Data exists, cannot change the datatype -'+ CONVERT(NVARCHAR,@EXSTDATATYPE)+''' AS Msg'
+				--PRINT (@STRQRY)
+				EXEC (@STRQRY)
+			END 
+			ELSE IF(((@EXSTDATATYPE='INT' OR @EXSTDATATYPE='FLOAT'  OR @EXSTDATATYPE='NUMERIC' OR @EXSTDATATYPE='TEXT' OR @EXSTDATATYPE='Combobox' OR @EXSTDATATYPE='EditableCombobox' ) AND (@DataType='DATE')))
+			BEGIN
+				SET @STRQRY=@STRQRY+' WHERE  ISNULL('+ @SysColumnName +','''')<>'''' AND (ISNUMERIC('+ @SysColumnName +')=1 OR ISNUMERIC('+ @SysColumnName +')=0) '		 
+				SET @STRQRY=@STRQRY+@STRQRY1+')>0)'	
+				SET @STRQRY=@STRQRY +' SELECT ''Data exists, cannot change the datatype -'+ CONVERT(NVARCHAR,@EXSTDATATYPE)+''' AS Msg'
+				--PRINT (@STRQRY)
+				EXEC (@STRQRY)
+			END 
+			ELSE 
+			BEGIN
+				SET @STRQRY=@STRQRY+' WHERE  ISNULL('+ @SysColumnName +','''')<>'''' '		 
+				SET @STRQRY=@STRQRY+@STRQRY1+')>0)'	
+				IF(@COLCOSTCENTERID>0)
+					SET @STRQRY=@STRQRY +' SELECT ''Data exists, cannot change the datatype -'+ CONVERT(NVARCHAR,@COLCOSTCENTERID)+''' AS Msg'
+				ELSE
+					SET @STRQRY=@STRQRY +' SELECT ''Data exists, cannot change the datatype -'+ CONVERT(NVARCHAR,@EXSTDATATYPE)+''' AS Msg'
+				PRINT (@STRQRY)
+				EXEC (@STRQRY)
+			END 
+		END	
+		ELSE
+		BEGIN
+				SET @STRQRY='IF((SELECT COUNT(*) FROM '+ @TRTABLENAME +' ID WITH(NOLOCK) '
+				IF(ISNULL(@COLTABLENAME,'')<>'')
+					SET @STRQRY=@STRQRY+','+ @COLTABLENAME +''
+					
+				SET @STRQRY=@STRQRY+' WHERE  ISNULL('+ @SysColumnName +','''')<>'''' '		 
+				
+				IF(ISNULL(@COLTABLENAME,'')<>'')	
+				BEGIN		 
+					IF(@CostCenterID=92 OR @CostCenterID=95 OR @CostCenterID=76)
+						SET @STRQRY=@STRQRY+' AND ID.'+ @JOINCOLUMNNAME +'=T1.NODEID '
+					ELSE IF(@CostCenterID=50051)
+						SET @STRQRY=@STRQRY+' AND ID.'+ @JOINCOLUMNNAME +'=T1.EMPLOYEEID '
+					ELSE
+						SET @STRQRY=@STRQRY+' AND ID.'+ @JOINCOLUMNNAME +'=T1.'+ @JOINCOLUMNNAME +' '
+						
+					SET @STRQRY=@STRQRY+' AND T1.COSTCENTERID='+ CONVERT(VARCHAR,@CostCenterID) +''
+				END
+				
+					
+				 SET @STRQRY=@STRQRY+')>0)'	
+				 PRINT @COLCOSTCENTERID
+				 IF(@COLCOSTCENTERID>0)
+					SET @STRQRY=@STRQRY +' SELECT ''Data exists, cannot change the datatype -'+ CONVERT(NVARCHAR,@COLCOSTCENTERID)+''' AS Msg'
+				 ELSE
+					SET @STRQRY=@STRQRY +' SELECT ''Data exists, cannot change the datatype -'+ CONVERT(NVARCHAR,@EXSTDATATYPE)+''' AS Msg'
+				PRINT (@STRQRY)
+				EXEC (@STRQRY)
+		END	
+	END	
+END
+SET NOCOUNT OFF; 
+IF(ISNULL(@STRQRY,'')='')
+	SELECT  '' AS Msg
+RETURN 1  
+END TRY  
+BEGIN CATCH    
+  --Return exception info [Message,Number,ProcedureName,LineNumber]    
+  IF ERROR_NUMBER()=50000  
+  BEGIN  
+   SELECT ErrorMessage,ErrorNumber FROM COM_ErrorMessages WITH(NOLOCK) WHERE ErrorNumber=ERROR_MESSAGE() AND LanguageID=@LangID  
+  END  
+  ELSE  
+  BEGIN  
+   SELECT ErrorMessage, ERROR_MESSAGE() AS ServerMessage,ERROR_NUMBER() as ErrorNumber, ERROR_PROCEDURE()as ProcedureName, ERROR_LINE() AS ErrorLine  
+   FROM COM_ErrorMessages WITH(NOLOCK) WHERE ErrorNumber=-999 AND LanguageID=@LangID  
+  END   
+SET NOCOUNT OFF    
+RETURN -999     
+END CATCH
+ 
+GO

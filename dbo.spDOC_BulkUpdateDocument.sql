@@ -1,0 +1,67 @@
+﻿USE PACT2C276
+GO
+SET ANSI_NULLS, QUOTED_IDENTIFIER ON
+GO
+CREATE PROCEDURE [dbo].[spDOC_BulkUpdateDocument]
+	@COSTCENTERID [bigint] = 0,
+	@DOCID [bigint] = 0,
+	@STRACCOUNTS [nvarchar](max) = NULL,
+	@STATICXML [nvarchar](max) = NULL,
+	@NUMERIC [nvarchar](max) = NULL,
+	@TEXT [nvarchar](max) = NULL,
+	@CC [nvarchar](max) = NULL,
+	@CompanyGUID [nvarchar](50),
+	@UserName [nvarchar](50),
+	@UserID [int] = 1,
+	@LangID [int] = 1
+WITH ENCRYPTION, EXECUTE AS CALLER
+AS
+BEGIN TRANSACTION
+BEGIN TRY  
+SET NOCOUNT ON;  
+
+  DECLARE @VersionNo BIGINT,@SQL NVARCHAR(MAX)
+  SELECT @VersionNo=VersionNo+1 FROM [INV_DocDetails] with(nolock) WHERE DocID=@DOCID 
+	 
+	 IF @STRACCOUNTS<> '' AND @STRACCOUNTS IS NOT NULL
+	BEGIN
+		SET @SQL=' UPDATE [INV_DocDetails] SET '+@STRACCOUNTS+',VersionNo='+CONVERT(VARCHAR,@VersionNo)+' WHERE DocID='+CONVERT(VARcHAR,@DOCID )		 
+		EXEC(@SQL)
+	END		 
+	
+	IF @STATICXML<> '' AND @STATICXML IS NOT NULL
+	BEGIN
+		SET @SQL=' UPDATE [INV_DocDetails] SET '+@STATICXML		 
+		EXEC(@SQL)
+	END		 	 
+	IF 	@NUMERIC <> '' AND @NUMERIC IS NOT NULL
+	BEGIN
+	 SET @SQL=' UPDATE COM_DocCCData SET '+@CC
+	 EXEC(@SQL)
+	END
+	
+	IF 	@TEXT <> '' AND @TEXT IS NOT NULL
+	BEGIN
+	 SET @SQL=' UPDATE [COM_DocTextData] SET '+@TEXT
+	
+	 EXEC(@SQL)
+	END	
+	 
+	IF 	@NUMERIC <> '' AND @NUMERIC IS NOT NULL
+	BEGIN
+	 SET @SQL=' UPDATE [COM_DocNumData] SET '+@NUMERIC
+	 EXEC(@SQL)
+	END			 
+
+COMMIT TRANSACTION
+SET NOCOUNT OFF;   
+RETURN 1
+END TRY
+BEGIN CATCH  
+	--Return exception info [Message,Number,ProcedureName,LineNumber]  
+	 
+ROLLBACK TRANSACTION
+SET NOCOUNT OFF  
+RETURN -999   
+END CATCH
+GO

@@ -1,0 +1,135 @@
+﻿USE PACT2C276
+GO
+SET ANSI_NULLS, QUOTED_IDENTIFIER ON
+GO
+CREATE PROCEDURE [dbo].[spCRM_GetAttendiesList]
+	@ActivityID [bigint] = 0,
+	@UserID [bigint],
+	@LangID [int] = 1
+WITH ENCRYPTION, EXECUTE AS CALLER
+AS
+BEGIN TRANSACTION
+BEGIN TRY	
+SET NOCOUNT ON
+	--SELECT DISTINCT TeamID,TeamName FROM CRM_Teams WITH(NOLOCK) WHERE StatusID=420
+	
+	--SELECT C.UserID,A.UserName,C.TeamID FROM  CRM_Teams C WITH(NOLOCK)
+	--		LEFT JOIN ADM_Users A ON A.UserID=C.UserID
+	--		 WHERE   IsGroup=0
+	--SELECT ASS.* FROM CRM_Assignment ASS WITH(NOLOCK) 
+	--LEFT JOIN CRM_Activities ACT WITH(NOLOCK) ON ACT.ActivityID=ASS.IsFromActivity
+	--WHERE ACT.InviteRefActID=@ActivityID
+	 if exists (select InviteRefActID from CRM_Activities where ActivityID= @ActivityID and InviteRefActID>0)
+			select  @ActivityID= InviteRefActID from CRM_Activities where ActivityID= @ActivityID and InviteRefActID>0
+	
+	CREATE TABLE #TBL(ID INT IDENTITY(1,1),ASSIGNEDFROM NVARCHAR(300),ASSIGNEDTO NVARCHAR(300),[DATE] DATETIME, ACTIVITYID BIGINT)
+	CREATE TABLE #TBL1(ID INT IDENTITY(1,1),TEAM INT,IsGroup INT,IsRole INT,TEAMNODEID INT,USERID INT,[DATE] DATETIME,CreatedBy nvarchar(300), ACTIVITYID BIGINT)
+ 
+	INSERT INTO #TBL1
+	SELECT IsTeam,IsGroup, IsRole,TeamNodeID,USERID,ASSH.CREATEDDATE,ASSH.CreatedBy , ASSH.IsFromActivity 
+	FROM CRM_Assignment ASSH WITH(NOLOCK) 
+	LEFT JOIN CRM_Activities ACT WITH(NOLOCK) ON ACT.ActivityID=ASSH.IsFromActivity
+	WHERE ACT.InviteRefActID=@ActivityID
+	  
+	DECLARE @COUNT INT,@I INT,@ISTEAM INT,@ISROLE INT,@ISGROUP INT,@FROMUSER NVARCHAR(300),@TOUSER NVARCHAR(300)
+	,@DATE DATETIME, @ACTID BIGINT
+	SELECT @I=1,@COUNT=COUNT(*) FROM #TBL1
+	 
+	WHILE @I<=@COUNT
+	BEGIN
+		SELECT @ISTEAM=TEAM,@ISROLE=IsRole,@ISGROUP=IsGroup, @ACTID=ACTIVITYID FROM #TBL1 WHERE ID=@I
+		IF @ISTEAM=0 AND @ISROLE=0 AND @ISGROUP=0
+		BEGIN
+		 
+				IF @I=1
+					SELECT @FROMUSER=CreatedBy from #TBL1 where ID=@I
+					
+				SELECT 	@TOUSER=UserName FROM ADM_Users WHERE UserID =(
+				SELECT USERID FROM #TBL1 WHERE ID=@I)
+				
+				SELECT @DATE=CONVERT(DATETIME,[DATE],102) FROM #TBL1 WHERE ID=@I
+				
+				INSERT INTO #TBL
+					SELECT @FROMUSER,@TOUSER,@DATE ,@ACTID
+		END
+		ELSE IF @ISTEAM=1
+		BEGIN
+			IF @I=1
+			 SELECT @FROMUSER=CreatedBy from #TBL1 where ID=@I	
+			 
+			 SELECT 	@TOUSER=TEAMNAME FROM CRM_TEAMS WHERE TeamID =(
+				SELECT TEAMNODEID FROM #TBL1 WHERE ID=@I)
+				
+				SELECT @DATE=CONVERT(DATETIME,[DATE],102) FROM #TBL1 WHERE ID=@I
+				
+				INSERT INTO #TBL
+					SELECT @FROMUSER,@TOUSER+ '-Team',@DATE,@ACTID 
+			--SET @FROMUSER=@TOUSER 
+		END
+		ELSE IF @ISGROUP=1
+		BEGIN
+			IF @I=1
+			 SELECT @FROMUSER=CreatedBy from #TBL1 where ID=@I	
+			 
+			 SELECT  @TOUSER=GROUPNAME FROM COM_Groups WHERE GROUPNAME<>'' and GID =(
+				SELECT TEAMNODEID FROM #TBL1 WHERE ID=@I)
+				
+				SELECT @DATE=CONVERT(DATETIME,[DATE],102) FROM #TBL1 WHERE ID=@I
+			 
+				INSERT INTO #TBL
+					SELECT @FROMUSER,@TOUSER+ '-Group',@DATE,@ACTID 
+			--SET @FROMUSER=@TOUSER 
+		END
+		ELSE IF @ISROLE=1
+		BEGIN
+	 
+			IF @I=1
+			 SELECT @FROMUSER=CreatedBy from #TBL1 where ID=@I	
+			 
+			 SELECT  @TOUSER=NAME FROM ADM_PROLES WHERE ROLEID =(
+				SELECT TEAMNODEID FROM #TBL1 WHERE ID=@I)
+				
+				SELECT @DATE=CONVERT(DATETIME,[DATE],102) FROM #TBL1 WHERE ID=@I
+				
+				INSERT INTO #TBL
+					SELECT @FROMUSER,@TOUSER + '-Role',@DATE,@ACTID 
+		--	SET @FROMUSER=@TOUSER 
+		END
+		SET @I=@I+1
+	END
+	--SELECT ASSIGNEDFROM,ASSIGNEDTO,CONVERT(NVARCHAR,[DATE],102) DATE, ACTIVITYID FROM #TBL 
+	
+	SELECT ActivityID,(SELECT TOP 1 ASSIGNEDFROM FROM #TBL ) Createdby, Createdby UserName, 'Invited' InviteStatus,'Invite' InvAtt,0 RefActID
+	FROM CRM_ACTIVITIES where ActivityID=@ActivityID
+	union all
+	select act.ActivityID ,T.ASSIGNEDFROM,T.ASSIGNEDTO,  act.InviteStatus, 'Attendies', 
+	act.InviteRefActID--, ass.createdby, ASS.IsFromActivity
+	from CRM_Activities act
+	JOIN #TBL T ON ACT.ACTIVITYID=T.ACTIVITYID
+	left join CRM_Assignment ass with(nolock) on act.ActivityID=ass.IsFromActivity  
+	--left join ADM_Users u with(nolock) on ass.userid=u.userid
+	where act.InviteRefActID>0 and act.InviteRefActID=@ActivityID
+	 order by ActivityID
+	
+	  
+		
+COMMIT TRANSACTION
+SET NOCOUNT OFF;
+RETURN 1
+END TRY
+BEGIN CATCH  
+	--Return exception info [Message,Number,ProcedureName,LineNumber]  
+	IF ERROR_NUMBER()=50000
+	BEGIN
+		SELECT ErrorMessage,ErrorNumber FROM COM_ErrorMessages WITH(nolock) WHERE ErrorNumber=ERROR_MESSAGE() AND LanguageID=@LangID
+	END
+	ELSE
+	BEGIN
+		SELECT ErrorMessage, ERROR_MESSAGE() AS ServerMessage,ERROR_NUMBER() as ErrorNumber, ERROR_PROCEDURE()as ProcedureName, ERROR_LINE() AS ErrorLine
+		FROM COM_ErrorMessages WITH(nolock) WHERE ErrorNumber=-999 AND LanguageID=@LangID
+	END
+ROLLBACK TRANSACTION
+SET NOCOUNT OFF  
+RETURN -999   
+END CATCH
+GO

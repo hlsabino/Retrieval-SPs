@@ -1,0 +1,62 @@
+﻿USE PACT2C276
+GO
+SET ANSI_NULLS, QUOTED_IDENTIFIER ON
+GO
+CREATE PROCEDURE [dbo].[spCOM_GetSearchColumnListViews]
+	@CostCenterID [int] = 0,
+	@ViewID [bigint] = 0,
+	@UserID [bigint],
+	@LangID [int] = 1
+WITH ENCRYPTION, EXECUTE AS CALLER
+AS
+BEGIN TRY    
+SET NOCOUNT ON;  
+  
+  
+  IF(EXISTS(SELECT * FROM ADM_GRIDVIEW WITH(NOLOCK) WHERE COSTCENTERID=@CostCenterID))
+  BEGIN
+		DECLARE @TABLE TABLE(ID INT IDENTITY(1,1),COLID BIGINT,LISTVIEWID INT)
+		DECLARE @COLUMNS NVARCHAR(MAX)	
+		DECLARE @XML XML
+		
+		SELECT @COLUMNS=DEFAULTSEARCHLISTVIEWS FROM ADM_GridView WITH(NOLOCK) WHERE COSTCENTERID=@CostCenterID 
+		AND GRIDVIEWID=@ViewID
+		IF @COLUMNS<>''
+		BEGIN 
+		 
+			SET @XML=@COLUMNS
+			INSERT INTO @TABLE
+			SELECT A.value('@CostCenterColID','bigint'),A.value('@ListViewID','bigint')
+			from @XML.nodes('XML/Row') as DATA(A)
+			SELECT * FROM @TABLE
+			
+		END
+		ELSE
+			SELECT -100 'Default'
+		SELECT * FROM ADM_GridView WITH(NOLOCK) WHERE COSTCENTERID=@CostCenterID AND GRIDVIEWID=@ViewID
+		
+  END
+  
+  
+SET NOCOUNT OFF;  
+RETURN 1  
+END TRY  
+BEGIN CATCH    
+  --Return exception info [Message,Number,ProcedureName,LineNumber]    
+  IF ERROR_NUMBER()=50000  
+  BEGIN  
+   SELECT ErrorMessage,ErrorNumber FROM COM_ErrorMessages WITH(NOLOCK) WHERE ErrorNumber=ERROR_MESSAGE() AND LanguageID=@LangID  
+  END  
+  ELSE  
+  BEGIN  
+   SELECT ErrorMessage, ERROR_MESSAGE() AS ServerMessage,ERROR_NUMBER() as ErrorNumber, ERROR_PROCEDURE()as ProcedureName, ERROR_LINE() AS ErrorLine  
+   FROM COM_ErrorMessages WITH(NOLOCK) WHERE ErrorNumber=-999 AND LanguageID=@LangID  
+  END  
+ SET NOCOUNT OFF    
+RETURN -999     
+END CATCH  
+  
+  
+  
+  
+GO

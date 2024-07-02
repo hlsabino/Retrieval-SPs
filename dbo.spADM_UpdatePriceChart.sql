@@ -1,0 +1,111 @@
+﻿USE PACT2C276
+GO
+SET ANSI_NULLS, QUOTED_IDENTIFIER ON
+GO
+CREATE PROCEDURE [dbo].[spADM_UpdatePriceChart]
+	@ProfileID [bigint],
+	@ProfileName [nvarchar](50),
+	@PriceXML [nvarchar](max) = null,
+	@UpdateColumns [nvarchar](max) = null,
+	@CompanyGUID [nvarchar](50) = null,
+	@UserName [nvarchar](50),
+	@UserID [bigint],
+	@LangID [int] = 1
+WITH ENCRYPTION, EXECUTE AS CALLER
+AS
+BEGIN TRANSACTION  
+BEGIN TRY  
+SET NOCOUNT ON;
+		--Declaration Section  
+		DECLARE @Dt FLOAT ,@XML XML,@SQL NVARCHAR(MAX)	 ,@XMLCOLUMNS NVARCHAR(MAX),@COLUMN NVARCHAR(300),@COLUMNDATA NVARCHAR(300)
+	    CREATE TABLE #TABLE(ID INT IDENTITY(1,1),COL NVARCHAR(300))
+	    INSERT INTO #TABLE
+	    EXEC SPSPLITSTRING @UpdateColumns ,',' 
+	    SET @XML=@PriceXML
+	    ALTER TABLE #TABLE ADD DATA NVARCHAR(300)
+	    
+	    create table #DATA (ID INT IDENTITY(1,1),PID int,WEF DATETIME)
+	    
+		SET @XMLCOLUMNS=''
+		
+		DECLARE @I INT,@Count INT,@J INT,@RCount INT,@Price FLOAT,@PID INT,@WEF DATETIME,@GroupID BIGINT
+		 SELECT @Count=COUNT(*),@I=1 FROM #TABLE		
+		 
+		 WHILE @I<=@Count
+		 BEGIN
+			   SET @SQL=' ALTER TABLE #DATA ADD '+(SELECT COL FROM #TABLE WHERE ID=@I)+ ' NVARCHAR(300)'		     
+			   EXEC(@SQL)
+			   set @SQL=''
+			   SET @XMLCOLUMNS = @XMLCOLUMNS +  'X.value(''@'+(SELECT COL FROM #TABLE WHERE ID=@I)+''',''NVARCHAR(300)'') , '
+			  SET @I=@I+1
+		 END
+		  
+		 SET @XMLCOLUMNS = SUBSTRING(@XMLCOLUMNS,1,LEN(@XMLCOLUMNS)-1)	
+		 set @SQL=' DECLARE @XML XML SET @XML='''+CONVERT(NVARCHAR(MAX),@PriceXML)+'''
+		 INSERT INTO #DATA ('+@UpdateColumns+',PID,WEF)
+		 SELECT '+@XMLCOLUMNS+',X.value(''@PrimaryKey'',''bigint''),X.value(''@WEF'',''DATETIME'') FROM @XML.nodes(''/XML/Row'') as Data(X) '
+		 exec (@SQL)
+		 SET @XMLCOLUMNS=''
+		 SET @COLUMNDATA=''
+		 
+		 SELECT @Count=COUNT(*),@I=1 FROM #DATA		 
+		 SELECT @RCount=COUNT(*),@J=1 FROM #TABLE	
+		 WHILE @I<=@Count
+		 BEGIN
+		 SELECT @PID=PID FROM #DATA WHERE ID=@I 
+		 IF(@PID>0)
+		 BEGIN
+			 
+			 SET @SQL=''
+			 set @XMLCOLUMNS=''
+				WHILE @J<=@RCOUNT
+				BEGIN 
+				
+				 SELECT @COLUMN=COL FROM #TABLE WHERE ID= @J 
+			 
+				    SET  @SQL =@SQL + '   DECLARE @COLUMNDATA NVARCHAR(300)  SET  @COLUMNDATA=(SELECT 
+				     '+@COLUMN+'  FROM #DATA WHERE ID='+CONVERT(NVARCHAR(10),@I) +') UPDATE 
+				     #TABLE SET DATA=@COLUMNDATA WHERE ID='+CONVERT(NVARCHAR(10),@J)+' ' 
+				    --PRINT @SQL
+					EXEC(@SQL)
+					SET @SQL=''
+					SET @XMLCOLUMNS=@XMLCOLUMNS + (SELECT COL FROM #TABLE WHERE ID=@J) + '=' +
+							(SELECT DATA FROM #TABLE WHERE ID=@J)	 + ','	 
+				SET @J=@J+1
+				END
+			
+			 SET @XMLCOLUMNS = SUBSTRING(@XMLCOLUMNS,1,LEN(@XMLCOLUMNS)-1)
+			 SET @XMLCOLUMNS=' UPDATE COM_CCPrices SET ' +	@XMLCOLUMNS +' WHERE PriceCCID='+CONVERT(NVARCHAR(50),@PID)
+			    PRINT @XMLCOLUMNS
+			 EXEC (@XMLCOLUMNS)
+		 END
+		 	 
+		 SET @I=@I+1
+		 SET @J=1
+		 END
+   
+
+COMMIT TRANSACTION  
+--ROLLBACK TRANSACTION
+
+SELECT ErrorMessage,ErrorNumber FROM COM_ErrorMessages WITH(nolock) 
+WHERE ErrorNumber=100 AND LanguageID=@LangID     
+SET NOCOUNT OFF;  
+RETURN @ProfileID  
+END TRY
+BEGIN CATCH  
+	--Return exception info [Message,Number,ProcedureName,LineNumber]  
+	IF ERROR_NUMBER()=50000
+	BEGIN
+		SELECT ErrorMessage,ErrorNumber FROM COM_ErrorMessages WITH(NOLOCK) WHERE ErrorNumber=ERROR_MESSAGE() AND LanguageID=@LangID
+	END
+	ELSE
+	BEGIN
+		SELECT ErrorMessage, ERROR_MESSAGE() AS ServerMessage,ERROR_NUMBER() as ErrorNumber, ERROR_PROCEDURE()as ProcedureName, ERROR_LINE() AS ErrorLine
+		FROM COM_ErrorMessages WITH(NOLOCK) WHERE ErrorNumber=-999 AND LanguageID=@LangID
+	END
+ROLLBACK TRANSACTION
+SET NOCOUNT OFF  
+RETURN -999   
+END CATCH
+GO
