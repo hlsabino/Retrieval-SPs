@@ -13,7 +13,7 @@ CREATE PROCEDURE [dbo].[spRPT_SetReportMap]
 	@LangID [int] = 1
 WITH ENCRYPTION, EXECUTE AS CALLER
 AS
-BEGIN TRANSACTION  
+  
 BEGIN TRY  
 SET NOCOUNT ON;
 	--Declaration Section
@@ -21,6 +21,7 @@ SET NOCOUNT ON;
 	
 	IF @Type=0
 	BEGIN
+	BEGIN TRANSACTION
 		set @XML=@MapXML
 		set @Dt=CONVERT(float,getdate())
 		
@@ -48,6 +49,7 @@ SET NOCOUNT ON;
 			@UserName = @UserName,
 			@UserID =1,
 			@LangID =@LangID
+	COMMIT TRANSACTION
 	END
 	ELSE IF @Type=1
 	BEGIN
@@ -83,8 +85,10 @@ SET NOCOUNT ON;
 	END
 	ELSE IF @Type=4
 	BEGIN
+	BEGIN TRANSACTION 
 		set @Dt=CONVERT(float,getdate())
 		set @MapXML='WEBLAND_'+@MapXML
+		
 		if @ReportID=0
 		begin
 			if exists (select Name from COM_Config with(nolock) where Name=@MapXML)
@@ -122,9 +126,10 @@ SET NOCOUNT ON;
 		INSERT INTO ADM_Assign(CostCenterID,NodeID,GroupID,RoleID,UserID,CreatedBy,CreatedDate)
 		SELECT 1,@ReportID,0,R,0,@UserName,@Dt
 		FROM @TblApp
+
+	COMMIT TRANSACTION 
 	END
-		
-COMMIT TRANSACTION  
+		  
 SELECT ErrorMessage,ErrorNumber FROM COM_ErrorMessages WITH(nolock) 
 WHERE ErrorNumber=100 AND LanguageID=@LangID
 SET NOCOUNT OFF;  

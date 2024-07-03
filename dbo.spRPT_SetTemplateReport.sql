@@ -21,13 +21,14 @@ CREATE PROCEDURE [dbo].[spRPT_SetTemplateReport]
 	@LangID [int] = 1
 WITH ENCRYPTION, EXECUTE AS CALLER
 AS
-BEGIN TRANSACTION  
+  
 BEGIN TRY  
 --SET NOCOUNT ON;
 	DECLARE @Tbl AS TABLE(ReportID INT)
 
 if(@CallType=1)
 begin
+BEGIN TRANSACTION
 	if @IsDefault=1
 		update ADM_PrintFormates set IsDefault=0 where Type=@Type
 	
@@ -50,6 +51,7 @@ begin
 		insert into ADM_PrintFormates(Name,ReportBody,ReportHeader,PageHeader,PageFooter,ReportFooter,BodyFields,FormulaFields,Type,IsDefault,CompanyGUID,GUID,CreatedBy,CreatedDate)
 		values  (@TemplateName,@ReportBodyXML,@ReportHeaderXML,@PageHeaderXML,@PageFooterXML,@ReportFooterXML,@BodyFieldXML,@FormulaFieldsXML,@Type,@IsDefault,@CompanyGUID,NEWID(),@UserName,convert(float,GETDATE()))
 	end
+COMMIT TRANSACTION
 end
 else if(@CallType=2)
 begin
@@ -59,6 +61,7 @@ begin
 		select @ReportBodyXML=ReportBody,@ReportHeaderXML=ReportHeader,@PageHeaderXML=PageHeader,@PageFooterXML=PageFooter,@ReportFooterXML=ReportFooter,@FormulaFieldsXML=FormulaFields
 		from ADM_PrintFormates with(nolock) where FormateID=@TemplateID
 	
+		BEGIN TRANSACTION 
 		INSERT INTO @Tbl(ReportID)
 		EXEC [SPSplitString] @TemplateName,','
 				
@@ -71,6 +74,8 @@ begin
 		,FormulaFields=@FormulaFieldsXML
 		from ADM_RevenuReports R WITH(NOLOCK)
 		inner join @Tbl T ON R.ReportID=T.ReportID
+		COMMIT TRANSACTION 
+
 	end
 end
 else if(@CallType=3)
@@ -79,7 +84,8 @@ begin
 	begin
 		select @ReportBodyXML=ReportBody,@ReportHeaderXML=ReportHeader,@PageHeaderXML=PageHeader,@PageFooterXML=PageFooter,@ReportFooterXML=ReportFooter,@FormulaFieldsXML=FormulaFields
 		from ADM_PrintFormates with(nolock) where FormateID=@TemplateID
-	
+		
+		BEGIN TRANSACTION 
 		INSERT INTO @Tbl(ReportID)
 		EXEC [SPSplitString] @TemplateName,','
 		
@@ -114,10 +120,10 @@ begin
 			set FormulaFields = @FormulaFieldsXML
 			from ADM_DocPrintLayouts R WITH(NOLOCK)
 			inner join @Tbl T ON R.DocPrintLayoutID=T.ReportID
+		COMMIT TRANSACTION 
 	end
 end
-		
-COMMIT TRANSACTION  
+ 
 --ROLLBACK TRANSACTION
 SELECT ErrorMessage,ErrorNumber FROM COM_ErrorMessages WITH(nolock) 
 WHERE ErrorNumber=100 AND LanguageID=@LangID

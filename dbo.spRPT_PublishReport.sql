@@ -19,7 +19,7 @@ CREATE PROCEDURE [dbo].[spRPT_PublishReport]
 	@LangID [int] = 1
 WITH ENCRYPTION, EXECUTE AS CALLER
 AS
-BEGIN TRANSACTION  
+  
 BEGIN TRY  
 SET NOCOUNT ON;
 	--Declaration Section
@@ -63,6 +63,7 @@ SET NOCOUNT ON;
 	 
 	IF @UnpublishReport=0
 	BEGIN
+	BEGIN TRANSACTION
 		if @FeatureID=494
 			set @Image='ADM_BULK_EDIT.png'
 		else
@@ -83,12 +84,13 @@ SET NOCOUNT ON;
 		--Added parameter for display @ Mobile application 
 		update adm_ribbonview set ismobile=@MobileReports where tabid=@TabID and Featureid=@FeatureID and FEATUREACTIONID=@ReportID 
 		--select * from adm_ribbonview where FeatureID=494
+	COMMIT TRANSACTION 
 	END
 	ELSE
+	BEGIN TRANSACTION
 		DELETE FROM ADM_RibbonView WHERE FEATUREID=@FeatureID AND FEATUREACTIONID=@ReportID 
-	 
-	
-COMMIT TRANSACTION   
+	COMMIT TRANSACTION 
+	   
 --rollback transaction
  SELECT ErrorMessage,ErrorNumber FROM COM_ErrorMessages WITH(nolock)   
 WHERE ErrorNumber=104 AND LanguageID=@LangID  

@@ -15,7 +15,7 @@ CREATE PROCEDURE [dbo].[spRPT_SetMatrixReport]
 	@LangID [int] = 1
 WITH ENCRYPTION, EXECUTE AS CALLER
 AS
-BEGIN TRANSACTION  
+ 
 BEGIN TRY  
 SET NOCOUNT ON;
 	--Declaration Section
@@ -40,6 +40,7 @@ SET NOCOUNT ON;
 	
 	IF @IsSaveAs=0
 	BEGIN
+	BEGIN TRANSACTION 
 		UPDATE [ADM_RevenUReports]
 		SET ReportTypeID=@ReportTypeID,
 			ReportTypeName=@ReportTypeName,
@@ -47,7 +48,8 @@ SET NOCOUNT ON;
 			  ,[GUID] =  newid()
 			  ,[ModifiedBy] = @UserName
 			  ,[ModifiedDate] = @Dt
-		WHERE ReportID=@ReportID      
+		WHERE ReportID=@ReportID  
+	COMMIT TRANSACTION 
 	END
 	ELSE
 	BEGIN
@@ -95,6 +97,7 @@ SET NOCOUNT ON;
 					select @SelectedNodeID=ReportID,@SelectedIsGroup=IsGroup,@Selectedlft =lft,@Selectedrgt=rgt,@ParentID=ParentID,@Depth=Depth
 					from [ADM_RevenUReports] with(NOLOCK) where ParentID =0
 							
+				BEGIN TRANSACTION
 				IF(@SelectedIsGroup = 1)--Adding Node Under the Group
 				BEGIN
 						UPDATE [ADM_RevenUReports] SET rgt = rgt + 2 WHERE rgt > @Selectedlft;
@@ -159,11 +162,13 @@ SET NOCOUNT ON;
 				
 				INSERT INTO ADM_ReportsUserMap(UserID,RoleID,GroupID,ReportID,CreatedBy,CreatedDate,ActionType)
 				VALUES(@UserID,0,0,@ReportID,@UserName,@Dt,4)
+				COMMIT TRANSACTION
 		END--------END INSERT RECORD-----------
 		ELSE
 		BEGIN
+		BEGIN TRANSACTION
 			UPDATE [ADM_RevenUReports]
-		   SET    
+			SET    
 				ReportTypeID=@ReportTypeID,
 				ReportTypeName=@ReportTypeName,
 				ReportDefnXML=@ReportDefnXML,
@@ -178,12 +183,10 @@ SET NOCOUNT ON;
 			WHERE ReportID=@SaveAsReportID     
 		 
 			SET @ReportID=@SaveAsReportID
-		END
-		
-		
+		COMMIT TRANSACTION
+		END	
 	END
-	
-COMMIT TRANSACTION  
+
 SELECT * FROM [ADM_RevenUReports] WITH(nolock) WHERE ReportID=@ReportID
 SELECT ErrorMessage,ErrorNumber FROM COM_ErrorMessages WITH(nolock) 
 WHERE ErrorNumber=100 AND LanguageID=@LangID

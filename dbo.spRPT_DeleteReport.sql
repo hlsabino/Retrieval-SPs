@@ -9,7 +9,7 @@ CREATE PROCEDURE [dbo].[spRPT_DeleteReport]
 	@LangID [int] = 1
 WITH ENCRYPTION, EXECUTE AS CALLER
 AS
-BEGIN TRANSACTION
+
 BEGIN TRY  
 SET NOCOUNT ON;  
 		DECLARE @RowsDeleted bigint,@lft bigint,@rgt bigint,@DashName nvarchar(max)
@@ -26,6 +26,7 @@ SET NOCOUNT ON;
 			SELECT @lft = lft, @rgt = rgt
 			FROM ADM_RevenUReports WITH(NOLOCK) WHERE ReportID=@ReportID
 			
+			BEGIN TRANSACTION
 			declare @Tbl as table(id int identity(1,1),ReportID bigint)
 			insert into @Tbl
 			select ReportID from ADM_RevenUReports with(nolock) WHERE lft >= @lft AND rgt <= @rgt 
@@ -57,6 +58,7 @@ SET NOCOUNT ON;
 			--Update left and right extent to set the tree
 			UPDATE ADM_RevenUReports SET rgt = rgt - 2 WHERE rgt > @rgt;
 			UPDATE ADM_RevenUReports SET lft = lft - 2 WHERE lft > @rgt;
+			COMMIT TRANSACTION
 
 			SELECT ErrorMessage,ErrorNumber FROM COM_ErrorMessages WITH(nolock) 
 			WHERE ErrorNumber=102 AND LanguageID=@LangID
@@ -67,7 +69,6 @@ SET NOCOUNT ON;
 			WHERE ErrorNumber=-200 AND LanguageID=@LangID
 		END
 
-COMMIT TRANSACTION
 --ROLLBACK TRANSACTION
 SET NOCOUNT OFF;  
 RETURN @RowsDeleted

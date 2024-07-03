@@ -17,7 +17,7 @@ CREATE PROCEDURE [dbo].[spRPT_AssignReport]
 	@LangID [int] = 1
 WITH ENCRYPTION, EXECUTE AS CALLER
 AS
-BEGIN TRANSACTION
+
 BEGIN TRY  
 SET NOCOUNT ON; 
  
@@ -52,6 +52,7 @@ SET NOCOUNT ON;
 	END
 	ELSE IF @CallType=2
 	BEGIN
+	BEGIN TRANSACTION
 		DELETE FROM ADM_ReportsUserMap WHERE ReportID=@ReportID AND ActionType=@Action
 	
 		INSERT INTO @TblApp(G)
@@ -73,6 +74,7 @@ SET NOCOUNT ON;
 		SELECT @ReportID,G,R,U,@UserName,@Dt,@Action
 		FROM @TblApp
 		ORDER BY U,R,G
+	COMMIT TRANSACTION
 	END
 	ELSE IF @CallType=3--TO GET MAP INFORMATION
 	BEGIN	
@@ -93,6 +95,7 @@ SET NOCOUNT ON;
 	END
 	ELSE IF @CallType=5
 	BEGIN
+	BEGIN TRANSACTION
 		DELETE FROM ADM_ReportsUserMap WHERE ReportID=@ReportID
 		declare @XML xml
 		set @XML=@Groups
@@ -106,9 +109,10 @@ SET NOCOUNT ON;
 		union all
 		select @ReportID,X.value('@ID','int'),0,0,@UserName,@Dt,X.value('@A','int')
 		from @XML.nodes('/RPTXML/G') as Data(X)
+	COMMIT TRANSACTION
 	END
   
-COMMIT TRANSACTION
+
 SET NOCOUNT OFF;
 SELECT ErrorMessage,ErrorNumber FROM COM_ErrorMessages WITH(nolock) 
 WHERE ErrorNumber=100 AND LanguageID=@LangID
