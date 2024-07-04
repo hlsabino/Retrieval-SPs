@@ -9,7 +9,7 @@ CREATE PROCEDURE [dbo].[spADM_GetFeaturesDetails]
 	@LangID [int] = 1
 WITH ENCRYPTION, EXECUTE AS CALLER
 AS
-BEGIN TRANSACTION  
+  
 BEGIN TRY  
 SET NOCOUNT ON;
    
@@ -909,8 +909,7 @@ SET NOCOUNT ON;
 	END
 	if(@CostCenterID=95)
 		select NodeID,Name from com_lookup with(nolock) where lookuptype=48
-	
-COMMIT TRANSACTION 
+	 
 SET NOCOUNT OFF;   
 RETURN 1
 END TRY
@@ -926,7 +925,7 @@ BEGIN CATCH
 		SELECT ErrorMessage, ERROR_MESSAGE() AS ServerMessage,ERROR_NUMBER() as ErrorNumber, ERROR_PROCEDURE()as ProcedureName, ERROR_LINE() AS ErrorLine
 		FROM COM_ErrorMessages WITH(NOLOCK) WHERE ErrorNumber=-999 AND LanguageID=@LangID
 	END
-ROLLBACK TRANSACTION
+
 SET NOCOUNT OFF  
 RETURN -999   
 END CATCH

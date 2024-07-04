@@ -8,7 +8,7 @@ CREATE PROCEDURE [dbo].[spADM_GetRegisters]
 	@LangID [int] = 1
 WITH ENCRYPTION, EXECUTE AS CALLER
 AS
-BEGIN TRANSACTION    
+   
 BEGIN TRY     
 SET NOCOUNT ON    
     
@@ -22,6 +22,7 @@ SET NOCOUNT ON
 	
 	set @Sql='select DISTINCT l.NodeID,l.Code,l.Name,l.IsGroup,l.lft from '+@table+' l '
 	
+	BEGIN TRANSACTION 
 	declare @tblIDsList table(CCId bigint)  
 	insert into @tblIDsList  
 	exec SPSplitString @value,','
@@ -36,8 +37,8 @@ SET NOCOUNT ON
 		set @Sql=@Sql+' where l.IsGroup=0 order by l.lft'
 		print @Sql
 	exec(@Sql)
-
-COMMIT TRANSACTION    
+	COMMIT TRANSACTION
+    
 SET NOCOUNT OFF;    
 return 1
 END TRY    

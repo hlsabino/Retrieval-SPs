@@ -8,7 +8,7 @@ CREATE PROCEDURE [dbo].[spADM_GetPDCDefaults]
 	@LangID [int] = 1
 WITH ENCRYPTION, EXECUTE AS CALLER
 AS
-BEGIN TRANSACTION  
+  
 BEGIN TRY  
 SET NOCOUNT ON;
 	IF(@IsPDC=1)
@@ -20,9 +20,7 @@ SET NOCOUNT ON;
 	ELSE IF(@IsPDC=3)
 		Select LastValueVouchers from  Adm_CostCenterDef with(nolock)
 		Where CostCenterID=70 and CostCenterColID=534062
-	
-
-COMMIT TRANSACTION    
+	    
 SET NOCOUNT OFF; 
 SELECT * FROM ADM_GlobalPreferences WHERE [NAME] IN ('BackupLocation','IsEncryptBackup','BackupPassCode')
 RETURN 1
@@ -37,7 +35,7 @@ BEGIN CATCH
 			SELECT ErrorMessage, ERROR_MESSAGE() AS ServerMessage,ERROR_NUMBER() as ErrorNumber, ERROR_PROCEDURE()as ProcedureName, ERROR_LINE() AS ErrorLine
 			FROM COM_ErrorMessages WITH(NOLOCK) WHERE ErrorNumber=-999 AND LanguageID=@LangID
 		END
- ROLLBACK TRANSACTION  
+  
  SET NOCOUNT OFF  
  RETURN -999     
 END CATCH   

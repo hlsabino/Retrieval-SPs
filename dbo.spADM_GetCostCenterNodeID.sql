@@ -12,7 +12,7 @@ CREATE PROCEDURE [dbo].[spADM_GetCostCenterNodeID]
 	@LangID [int] = 1
 WITH ENCRYPTION, EXECUTE AS CALLER
 AS
-BEGIN TRANSACTION  
+ 
 BEGIN TRY  
 SET NOCOUNT ON  
 
@@ -34,6 +34,7 @@ SET NOCOUNT ON
 	       
 	  if(@NodeIDTemp IS NULL OR @NodeIDTemp = '' OR @NodeIDTemp  = 0)
 	  begin 
+	  BEGIN TRANSACTION 
 		   SET @TEMPxml='<XML><Row AccountName ="'+replace(@CostcenterName,'&','&amp;')+'" AccountCode ="'+replace(@CostcenterName,'&','&amp;')+'"  ></Row></XML>'    
 		   
 		      
@@ -58,12 +59,11 @@ SET NOCOUNT ON
 	     
 	   EXEC SP_EXECUTESQL @QRY ,@TEMPQUERY,@NodeIDTemp  OUTPUT  
 		 
-		 
-		end 
+	  COMMIT TRANSACTION  
+	  end 
 			--select  @NodeIDTemp
 	-- set  @NodeIDRtn=   @NodeIDTemp 
-		 
-COMMIT TRANSACTION   
+		    
 SET NOCOUNT OFF;     
 SELECT ErrorMessage,ErrorNumber FROM COM_ErrorMessages WITH(nolock)   
 WHERE ErrorNumber=100 AND LanguageID=@LangID    

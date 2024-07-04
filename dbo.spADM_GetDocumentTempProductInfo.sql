@@ -8,7 +8,7 @@ CREATE PROCEDURE [dbo].[spADM_GetDocumentTempProductInfo]
 	@LangID [int] = 1
 WITH ENCRYPTION, EXECUTE AS CALLER
 AS
-BEGIN TRANSACTION    
+   
 BEGIN TRY    
 SET NOCOUNT ON;  
    
@@ -22,8 +22,7 @@ SET NOCOUNT ON;
 		AND ((C.IsColumnUserDefined=1 AND C.IsColumnInUse=1) OR C.IsColumnUserDefined=0)    
 		ORDER BY  C.RowNo,C.ColumnNo  
   
-	
-COMMIT TRANSACTION   
+	   
 SET NOCOUNT OFF;   
 RETURN @DocumentID
 END TRY  
@@ -38,11 +37,10 @@ BEGIN CATCH
    SELECT ErrorMessage, ERROR_MESSAGE() AS ServerMessage,ERROR_NUMBER() as ErrorNumber, ERROR_PROCEDURE()as ProcedureName, ERROR_LINE() AS ErrorLine  
    FROM COM_ErrorMessages WITH(NOLOCK) WHERE ErrorNumber=-999 AND LanguageID=@LangID  
   END  
-ROLLBACK TRANSACTION  
+  
 SET NOCOUNT OFF    
 RETURN -999     
 END CATCH  
   
   
-   
 GO

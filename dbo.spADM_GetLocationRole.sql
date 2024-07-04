@@ -8,7 +8,7 @@ CREATE PROCEDURE [dbo].[spADM_GetLocationRole]
 	@Where [nvarchar](max) = ''
 WITH ENCRYPTION, EXECUTE AS CALLER
 AS
-BEGIN TRANSACTION        
+       
 BEGIN TRY        
 SET NOCOUNT ON;      
    DECLARE @TABLENAME NVARCHAR(200),@SQL NVARCHAR(MAX)  
@@ -57,10 +57,7 @@ SET NOCOUNT ON;
  --ELSE  IF @CostCenterId = 50001  
  --BEGIN  
  --SELECT * FROM COM_Division  ORDER BY LFT     
- --END    
-     
-       
-COMMIT TRANSACTION        
+ --END         
      
 SELECT ErrorMessage,ErrorNumber FROM COM_ErrorMessages WITH(nolock)       
 WHERE ErrorNumber=100 AND LanguageID=@LangID          
@@ -82,8 +79,7 @@ BEGIN CATCH
  BEGIN      
   SELECT ErrorMessage, ERROR_MESSAGE() AS ServerMessage,ERROR_NUMBER() AS ErrorNumber, ERROR_PROCEDURE()AS ProcedureName, ERROR_LINE() AS ErrorLine      
   FROM COM_ErrorMessages WITH(NOLOCK) WHERE ErrorNumber=-999 AND LanguageID=@LangID      
- END      
- ROLLBACK TRANSACTION      
+ END            
  SET NOCOUNT OFF        
  RETURN -999         
 END CATCH

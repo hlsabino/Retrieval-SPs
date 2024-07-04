@@ -13,7 +13,7 @@ CREATE PROCEDURE [dbo].[spADM_GetDocumentsBYProducts]
 	@LangID [int] = 1
 WITH ENCRYPTION, EXECUTE AS CALLER
 AS
-BEGIN TRANSACTION        
+       
 BEGIN TRY        
 SET NOCOUNT ON;    
   
@@ -99,13 +99,14 @@ SET NOCOUNT ON;
 		
 		if(@DeleteOldValues=1)
 		BEGIN
+		BEGIN TRANSACTION 
 			set @sql=' delete from INV_ProductAvgRate '
 			if(@ProductIDs<>'')
 				set @sql =@sql+' where ProductID in('+@ProductIDs+')'
 			exec(	@SQL)
+		COMMIT TRANSACTION 
 		END
-   
-COMMIT TRANSACTION       
+         
 SET NOCOUNT OFF;         
 RETURN 1      
 END TRY      
