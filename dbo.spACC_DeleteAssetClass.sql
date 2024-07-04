@@ -8,7 +8,7 @@ CREATE PROCEDURE [dbo].[spACC_DeleteAssetClass]
 	@LangID [int] = 1
 WITH ENCRYPTION, EXECUTE AS CALLER
 AS
-BEGIN TRANSACTION
+
 BEGIN TRY  
 SET NOCOUNT ON;  
 		--Declaration Section
@@ -34,10 +34,12 @@ SET NOCOUNT ON;
 		END
 		else
 		begin
+		BEGIN TRANSACTION
 			delete from Acc_AssetClass where AssetClassId=@AssetclassID
+		COMMIT TRANSACTION
 		end
 
-COMMIT TRANSACTION
+
 SET NOCOUNT OFF;  
 SELECT ErrorMessage,ErrorNumber FROM COM_ErrorMessages WITH(nolock) 
 WHERE ErrorNumber=102 AND LanguageID=@LangID

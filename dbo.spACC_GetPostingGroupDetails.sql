@@ -8,10 +8,9 @@ CREATE PROCEDURE [dbo].[spACC_GetPostingGroupDetails]
 	@LangID [int] = 1
 WITH ENCRYPTION, EXECUTE AS CALLER
 AS
-BEGIN TRANSACTION
+
 BEGIN TRY	
 SET NOCOUNT ON
-
 		 
 		--Getting data from Accounts main table
 	SELECT a.PostingGroupID, a.PostGroupCode, a.PostGroupName, a.StatusID, a.PostGroupTypeID, a.PostGroupTypeName, a.AcqnCostACCID, 
@@ -20,9 +19,6 @@ SET NOCOUNT ON
 	FROM   ACC_PostingGroup AS a INNER JOIN COM_Status AS s ON a.StatusID = s.StatusID
 	WHERE PostingGroupID=@PostingGroupID
 		
- 
-	 
-COMMIT TRANSACTION
 SET NOCOUNT OFF;
 RETURN @PostingGroupID
 END TRY
@@ -37,7 +33,7 @@ BEGIN CATCH
 		SELECT ErrorMessage, ERROR_MESSAGE() AS ServerMessage,ERROR_NUMBER() as ErrorNumber, ERROR_PROCEDURE()as ProcedureName, ERROR_LINE() AS ErrorLine
 		FROM COM_ErrorMessages WITH(nolock) WHERE ErrorNumber=-999 AND LanguageID=@LangID
 	END
-ROLLBACK TRANSACTION
+
 SET NOCOUNT OFF  
 RETURN -999   
 END CATCH  

@@ -9,11 +9,10 @@ CREATE PROCEDURE [dbo].[spACC_GetPaymentTermDetails]
 	@LangID [int] = 1
 WITH ENCRYPTION, EXECUTE AS CALLER
 AS
-BEGIN TRANSACTION    
+    
 BEGIN TRY    
 SET NOCOUNT ON;  
 
-	
 	select PaymentTerms  from ACC_Accounts WITH(NOLOCK) where AccountID=@AccountID
 
 	select * from Acc_PaymentDiscountProfile  WITH(NOLOCK)
@@ -25,8 +24,7 @@ SET NOCOUNT ON;
 	left join Acc_PaymentDiscountProfile b WITH(NOLOCK) on a.ProfileID=b.ProfileID
 	where [VoucherNo]=  (select VoucherNo from INV_DocDetails  WITH(NOLOCK) where InvDocDetailsID=@linkedID)
    
-     
-COMMIT TRANSACTION   
+        
 SET NOCOUNT OFF; 
 RETURN 1  
 END TRY  
@@ -40,7 +38,7 @@ BEGIN CATCH
    SELECT ErrorMessage, ERROR_MESSAGE() AS ServerMessage,ERROR_NUMBER() as ErrorNumber, ERROR_PROCEDURE()as ProcedureName, ERROR_LINE() AS ErrorLine  
    FROM COM_ErrorMessages WITH(NOLOCK) WHERE ErrorNumber=-999  
   END  
-ROLLBACK TRANSACTION  
+ 
 SET NOCOUNT OFF    
 RETURN -999     
 END CATCH

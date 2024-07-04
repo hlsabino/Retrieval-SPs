@@ -8,7 +8,7 @@ CREATE PROCEDURE [dbo].[spACC_DeleteDeprBook]
 	@LangID [int] = 1
 WITH ENCRYPTION, EXECUTE AS CALLER
 AS
-BEGIN TRANSACTION
+
 BEGIN TRY  
 SET NOCOUNT ON;  
 		--Declaration Section
@@ -39,14 +39,11 @@ SET NOCOUNT ON;
 
 		else
 		begin
-
+		BEGIN TRANSACTION
 		delete from Acc_DeprBook where DeprBookID=@DeprBookID
-
+		COMMIT TRANSACTION
 		end
 
-	
-
-COMMIT TRANSACTION
 SET NOCOUNT OFF;  
 SELECT ErrorMessage,ErrorNumber FROM COM_ErrorMessages WITH(nolock) 
 WHERE ErrorNumber=102 AND LanguageID=@LangID

@@ -16,7 +16,7 @@ CREATE PROCEDURE [dbo].[spRPT_SetMRPII]
 	@LangID [int] = 1
 WITH ENCRYPTION, EXECUTE AS CALLER
 AS
-BEGIN TRANSACTION  
+  
 BEGIN TRY  
 SET NOCOUNT ON;
 	--Declaration Section
@@ -62,6 +62,7 @@ SET NOCOUNT ON;
 			
 			set @SQL=@SQL+'></XML>'
 			
+			BEGIN TRANSACTION
 			EXEC @return_value = [dbo].[spDOC_SetTempInvDoc]      
 			  @CostCenterID = @AUTOCCID,      
 			  @DocID = @ddID,      
@@ -87,12 +88,14 @@ SET NOCOUNT ON;
 			  @UserName = @UserName,      
 			  @UserID = @UserID,      
 			  @LangID = @LangID  
-			  
+
 			  if(@return_value>0)			  
 				select @RefNodeID=InvDocdetailsID,@vno=voucherno from Inv_Docdetails WITH(NOLOCK)
 				where Docid=@return_value							  
 			  else
-				return -999	
+				return -999
+
+			COMMIT TRANSACTION
 			    
 		END	
 		
@@ -134,6 +137,7 @@ SET NOCOUNT ON;
 			
 			set @SQL=@SQL+'></XML>'
 			
+			BEGIN TRANSACTION
 			EXEC @return_value = [dbo].[spDOC_SetTempInvDoc]      
 			  @CostCenterID = @AUTOCCID,      
 			  @DocID = @ddID,      
@@ -159,20 +163,24 @@ SET NOCOUNT ON;
 			  @UserName = @UserName,      
 			  @UserID = @UserID,      
 			  @LangID = @LangID  
-			  
+			
 			  if(@return_value>0)
 			  BEGIN
 				set @RefID=@return_value
 				select @RefNodeID=InvDocdetailsID from Inv_Docdetails WITH(NOLOCK)
 				where Docid=@return_value
+
 				update b
 				set dcalpha4=@vno
 				from Inv_Docdetails a WITH(NOLOCK)
 				join com_doctextdata b WITH(NOLOCK) on a.InvDocdetailsID=b.InvDocdetailsID
-				where Docid=@return_value		
+				where Docid=@return_value
+
 			  END	
 			  else
 				return -999	
+
+			COMMIT TRANSACTION
 		END	
 		
 		if(@RMXML<>'')
@@ -212,7 +220,8 @@ SET NOCOUNT ON;
 				set @SQL=@SQL+' DetailIds="'+@DetIDS+'" '
 			
 			set @SQL=@SQL+'></XML>'
-			
+
+			BEGIN TRANSACTION
 			EXEC @return_value = [dbo].[spDOC_SetTempInvDoc]      
 			  @CostCenterID = @AUTOCCID,      
 			  @DocID = @ddID,      
@@ -232,13 +241,13 @@ SET NOCOUNT ON;
 			  @WID = @TEmpWid,      
 			  @RoleID = @RoleID,      
 			  @DocAddress = N'',      
-			 @RefCCID = 300,    
+			  @RefCCID = 300,    
 			  @RefNodeid  = @RefNodeID,    
 			  @CompanyGUID = @CompanyGUID,      
 			  @UserName = @UserName,      
 			  @UserID = @UserID,      
 			  @LangID = @LangID    
-			  
+			 
 			  if(@return_value>0)
 			  BEGIN
 					update a
@@ -250,6 +259,8 @@ SET NOCOUNT ON;
 			  END
 			  ELSE
 				return -999
+
+			COMMIT TRANSACTION
 		END	
 		
 		if(@MacXML<>'')
@@ -290,6 +301,7 @@ SET NOCOUNT ON;
 			
 			set @SQL=@SQL+'></XML>'
 			
+			BEGIN TRANSACTION
 			EXEC @return_value = [dbo].[spDOC_SetTempInvDoc]      
 			  @CostCenterID = @AUTOCCID,      
 			  @DocID = @ddID,      
@@ -315,7 +327,7 @@ SET NOCOUNT ON;
 			  @UserName = @UserName,      
 			  @UserID = @UserID,      
 			  @LangID = @LangID  
-			  
+			 
 			  if(@return_value>0)
 			  BEGIN
 					update a
@@ -325,8 +337,11 @@ SET NOCOUNT ON;
 					join Inv_Docdetails c WITH(NOLOCK) on c.ProductID=b.dcAlpha1
 					where a.Docid=@return_value and c.Docid=@RefID and b.dcAlpha1 is not null and isnumeric(b.dcAlpha1)=1
 			  END
+			  
 			  ELSE
 				return -999  
+
+		COMMIT TRANSACTION
 		END	
 		
 		if(@Procxml<>'')
@@ -367,6 +382,7 @@ SET NOCOUNT ON;
 			
 			set @SQL=@SQL+'></XML>'
 			
+			BEGIN TRANSACTION
 			EXEC @return_value = [dbo].[spDOC_SetTempInvDoc]      
 			  @CostCenterID = @AUTOCCID,      
 			  @DocID = @ddID,      
@@ -392,7 +408,7 @@ SET NOCOUNT ON;
 			  @UserName = @UserName,      
 			  @UserID = @UserID,      
 			  @LangID = @LangID    
-			  
+
 			  if(@return_value>0)
 			  BEGIN
 					update a
@@ -401,12 +417,14 @@ SET NOCOUNT ON;
 					join COM_DocTextData b WITH(NOLOCK) on a.InvDocDetailsID=b.InvDocDetailsID
 					join Inv_Docdetails c WITH(NOLOCK) on c.ProductID=b.dcAlpha1
 					where a.Docid=@return_value and c.Docid=@RefID and b.dcAlpha1 is not null and isnumeric(b.dcAlpha1)=1
+			  
 			  END
+
 			  ELSE
 				return -999
+			COMMIT TRANSACTION
 		END	
-		
-COMMIT TRANSACTION  
+		 
 SELECT ErrorMessage,ErrorNumber FROM COM_ErrorMessages WITH(nolock) 
 WHERE ErrorNumber=100 AND LanguageID=@LangID
 SET NOCOUNT OFF;  
