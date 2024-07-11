@@ -7,7 +7,7 @@ CREATE PROCEDURE [dbo].[spCOM_GetAssignedUserEmailAddress]
 	@NODEID [int]
 WITH ENCRYPTION, EXECUTE AS CALLER
 AS
-BEGIN TRANSACTION
+
 	if exists (select * from sys.tables with(nolock) where name='CRM_Assignment')
 	BEGIN
   
@@ -77,7 +77,7 @@ BEGIN TRANSACTION
 
 		DROP TABLE #ASSIGNEDTABLE
 	END
-COMMIT TRANSACTION    
+    
 SET NOCOUNT OFF;     
 RETURN 1
 GO

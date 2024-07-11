@@ -10,7 +10,7 @@ CREATE PROCEDURE [dbo].[spADM_GetBudgetScreenDetails]
 	@LangID [int] = 1
 WITH ENCRYPTION, EXECUTE AS CALLER
 AS
-BEGIN TRANSACTION  
+  
 BEGIN TRY  
 SET NOCOUNT ON;
  
@@ -93,6 +93,7 @@ BEGIN
 	select @I=1,@CNT=COUNT(*) FROM @Tbl
 	while(@I<=@CNT)
 	begin
+	BEGIN TRANSACTION
 		select @ColID=ColID,@Header=Header,@Visible=Visible
 		from @Tbl where ID=@I
 		
@@ -113,10 +114,12 @@ BEGIN
 		end
 		
 		set @I=@I+1	
+		COMMIT TRANSACTION
 	end
 END
 ELSE IF @CallType=103
 BEGIN
+BEGIN TRANSACTION
 	--Assigning Budgets
     DELETE FROM ADM_DocumentBudgets WHERE BudgetID=@BudgetID
     IF @MapXML<>'' AND @MapXML IS NOT NULL
@@ -128,9 +131,10 @@ BEGIN
             @BudgetID,'CompanyGUID',@UserID,CONVERT(FLOAT,getdate())
         FROM @XML.nodes('/XML/Row') as DATA(X)
     END
+COMMIT TRANSACTION
 END
 
-COMMIT TRANSACTION 
+ 
 SET NOCOUNT OFF;   
 RETURN 1
 END TRY

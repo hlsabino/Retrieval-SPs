@@ -9,7 +9,7 @@ CREATE PROCEDURE [dbo].[spCOM_GetCode]
 	@CodeNumber [bigint] OUTPUT
 WITH ENCRYPTION, EXECUTE AS CALLER
 AS
-BEGIN TRANSACTION
+
 BEGIN TRY  
 SET NOCOUNT ON;    
 		-- Declare the variable here
@@ -117,7 +117,7 @@ SET NOCOUNT ON;
 		SET @CodeGenerated = @Result
 		SET @CodeNumber = @CurrentCodeNumber
 		--select @CodeNumber ,'@CodeNumber'
-COMMIT TRANSACTION    
+    
 SET NOCOUNT OFF;     
 RETURN 1
 END TRY
@@ -127,7 +127,7 @@ BEGIN CATCH
 		BEGIN  
 			SELECT 'ERROR' 
 		END   
- ROLLBACK TRANSACTION  
+   
  SET NOCOUNT OFF    
  RETURN -999     
 END CATCH   

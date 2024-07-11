@@ -10,7 +10,7 @@ CREATE PROCEDURE [dbo].[spADM_GetPriceChart]
 	@LangID [int] = 1
 WITH ENCRYPTION, EXECUTE AS CALLER
 AS
---BEGIN TRANSACTION  
+--  
 BEGIN TRY  
 SET NOCOUNT ON;
 
@@ -151,6 +151,7 @@ SET NOCOUNT ON;
 	END
 	ELSE IF @Type=5 /*TO DELETE PROFILE*/
 	BEGIN
+	BEGIN TRANSACTION
 		DELETE FROM COM_CCPrices WHERE ProfileID=@PriceChartID
 		DELETE FROM COM_CCPriceTaxCCDefn WHERE DefType=1 and ProfileID=@PriceChartID
 		DELETE FROM COM_CCPricesDefn WHERE ProfileID=@PriceChartID
@@ -162,7 +163,8 @@ SET NOCOUNT ON;
 		select 1,0,CostCenterID,max(convert(int,IsGroupExists))
 		from COM_CCPriceTaxCCDefn with(nolock)
 		where DefType=1
-		group by CostCenterID		
+		group by CostCenterID
+	COMMIT TRANSACTION
 	END
 	ELSE IF @Type=6 /*TO GET DEFAULT PROFILE*/
 	BEGIN
@@ -232,6 +234,7 @@ SET NOCOUNT ON;
 	END
 	ELSE IF @Type=7 /* ACTIVE/INACTIVE */
 	BEGIN
+	BEGIN TRANSACTION
 		UPDATE COM_CCPrices 
 		SET StatusID=@Param
 		WHERE ProfileID=@PriceChartID
@@ -239,6 +242,7 @@ SET NOCOUNT ON;
 		UPDATE COM_CCPricesDefn 
 		SET StatusID=@Param
 		WHERE ProfileID=@PriceChartID
+	COMMIT TRANSACTION
 	END
 	ELSE IF @Type=8 /* GET PRICE CHART DATA */
 	BEGIN
@@ -352,7 +356,7 @@ SET NOCOUNT ON;
 	   
    END
 	
---COMMIT TRANSACTION 
+-- 
 SET NOCOUNT OFF;   
 RETURN 1
 END TRY
@@ -367,7 +371,7 @@ BEGIN CATCH
 		SELECT ErrorMessage, ERROR_MESSAGE() AS ServerMessage,ERROR_NUMBER() as ErrorNumber, ERROR_PROCEDURE()as ProcedureName, ERROR_LINE() AS ErrorLine
 	FROM COM_ErrorMessages WITH(NOLOCK) WHERE ErrorNumber=-999 AND LanguageID=@LangID
 	END
---ROLLBACK TRANSACTION
+ROLLBACK TRANSACTION
 SET NOCOUNT OFF  
 RETURN -999   
 END CATCH

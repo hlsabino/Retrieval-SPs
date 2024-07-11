@@ -22,7 +22,7 @@ SET NOCOUNT ON
 	
 	set @Sql='select DISTINCT l.NodeID,l.Code,l.Name,l.IsGroup,l.lft from '+@table+' l '
 	
-	BEGIN TRANSACTION 
+	 
 	declare @tblIDsList table(CCId bigint)  
 	insert into @tblIDsList  
 	exec SPSplitString @value,','
@@ -37,7 +37,7 @@ SET NOCOUNT ON
 		set @Sql=@Sql+' where l.IsGroup=0 order by l.lft'
 		print @Sql
 	exec(@Sql)
-	COMMIT TRANSACTION
+	
     
 SET NOCOUNT OFF;    
 return 1
@@ -53,7 +53,7 @@ BEGIN CATCH
   SELECT ErrorMessage, ERROR_MESSAGE() AS ServerMessage,ERROR_NUMBER() as ErrorNumber, ERROR_PROCEDURE()as ProcedureName, ERROR_LINE() AS ErrorLine    
   FROM COM_ErrorMessages WITH(nolock) WHERE ErrorNumber=-999 AND LanguageID=@LangID    
  END    
-ROLLBACK TRANSACTION    
+    
 SET NOCOUNT OFF      
 RETURN -999       
 END CATCH      

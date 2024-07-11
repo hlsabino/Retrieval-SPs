@@ -9,7 +9,7 @@ CREATE PROCEDURE [dbo].[spCOM_GetCostCenterPreferences]
 	@LangID [int] = 1
 WITH ENCRYPTION, EXECUTE AS CALLER
 AS
-BEGIN TRANSACTION      
+      
 BEGIN TRY      
 SET NOCOUNT ON      
        
@@ -741,7 +741,7 @@ SET NOCOUNT ON
 
 	END      
        
-COMMIT TRANSACTION      
+      
 SET NOCOUNT OFF;      
 RETURN 1      
 END TRY      
@@ -756,7 +756,7 @@ BEGIN CATCH
   SELECT ErrorMessage, ERROR_MESSAGE() AS ServerMessage,ERROR_NUMBER() as ErrorNumber, ERROR_PROCEDURE()as ProcedureName, ERROR_LINE() AS ErrorLine      
   FROM COM_ErrorMessages WITH(NOLOCK) WHERE ErrorNumber=-999 AND LanguageID=@LangID      
  END      
-ROLLBACK TRANSACTION      
+      
 SET NOCOUNT OFF        
 RETURN -999         
 END CATCH

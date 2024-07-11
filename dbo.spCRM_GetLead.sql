@@ -9,7 +9,7 @@ CREATE PROCEDURE [dbo].[spCRM_GetLead]
 	@RoleID [int] = 0
 WITH ENCRYPTION, EXECUTE AS CALLER
 AS
-BEGIN TRANSACTION
+
 BEGIN TRY	
 SET NOCOUNT ON
 	select *,convert(datetime,createddate) as CvtDate,convert(datetime,date) as CDate,dbo.fnGet_GetAssignedListForFeatures(CONVERT(nvarchar(300),86),@LeadID) AssignedTo  
@@ -287,7 +287,7 @@ SET NOCOUNT ON
 		
 		end 
 		
-COMMIT TRANSACTION
+
 SET NOCOUNT OFF;
 RETURN 1
 END TRY
@@ -303,7 +303,7 @@ BEGIN CATCH
 		SELECT ErrorMessage, ERROR_MESSAGE() AS ServerMessage,ERROR_NUMBER() as ErrorNumber, ERROR_PROCEDURE()as ProcedureName, ERROR_LINE() AS ErrorLine
 		FROM COM_ErrorMessages WITH(nolock) WHERE ErrorNumber=-999 AND LanguageID=@LangID
 	END
-ROLLBACK TRANSACTION
+
 SET NOCOUNT OFF  
 RETURN -999   
 END CATCH

@@ -12,7 +12,7 @@ CREATE PROCEDURE [dbo].[spPRD_GetProductionPlan]
 	@LangID [int] = 1
 WITH ENCRYPTION, EXECUTE AS CALLER
 AS
-BEGIN TRANSACTION
+
 BEGIN TRY	
 SET NOCOUNT ON
 		declare @sql nvarchar(max)
@@ -46,7 +46,7 @@ SET NOCOUNT ON
 		exec(@sql)
 
 	
-COMMIT TRANSACTION
+
 SET NOCOUNT OFF;
 RETURN 1
 END TRY
@@ -61,7 +61,7 @@ BEGIN CATCH
 		SELECT ErrorMessage, ERROR_MESSAGE() AS ServerMessage,ERROR_NUMBER() as ErrorNumber, ERROR_PROCEDURE()as ProcedureName, ERROR_LINE() AS ErrorLine
 		FROM COM_ErrorMessages WITH(nolock) WHERE ErrorNumber=-999 AND LanguageID=@LangID
 	END
-ROLLBACK TRANSACTION
+
 SET NOCOUNT OFF  
 RETURN -999   
 END CATCH  

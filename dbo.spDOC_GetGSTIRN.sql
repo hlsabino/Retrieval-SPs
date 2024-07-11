@@ -9,7 +9,7 @@ CREATE PROCEDURE [dbo].[spDOC_GetGSTIRN]
 	@LangID [int] = 1
 WITH ENCRYPTION, EXECUTE AS CALLER
 AS
-BEGIN TRANSACTION          
+          
 BEGIN TRY          
 SET NOCOUNT ON;        
      
@@ -24,7 +24,7 @@ SELECT @Sql='SELECT TOP 1 DTD.'+ SysColumnName +' as IRN from INV_DocDetails INV
  exec (@Sql)    
    
       
-COMMIT TRANSACTION             
+             
 SET NOCOUNT OFF;    
     
 RETURN 1    
@@ -45,7 +45,7 @@ BEGIN CATCH
   SELECT ErrorMessage, ERROR_MESSAGE() AS ServerMessage,ERROR_NUMBER() as ErrorNumber, ERROR_PROCEDURE()as ProcedureName, ERROR_LINE() AS ErrorLine    
   FROM COM_ErrorMessages WITH(nolock) WHERE ErrorNumber=-999 AND LanguageID=@LangID    
  END    
-ROLLBACK TRANSACTION    
+    
 SET NOCOUNT OFF      
 RETURN -999       
 END CATCH 

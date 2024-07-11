@@ -94,7 +94,7 @@ SET NOCOUNT ON
 	END
 	ELSE IF @Type=3--INSERT/UPDATE
 	BEGIN
-	BEGIN TRANSACTION
+	
 		DECLARE @Dt FLOAT,@XML XML
 		DECLARE @TblApp AS TABLE(G BIGINT NOT NULL DEFAULT(0),R BIGINT NOT NULL DEFAULT(0),U BIGINT NOT NULL DEFAULT(0))
 		DECLARE @TblReports AS TABLE(ReportID BIGINT,GroupLevel BIT,Shortcut NVARCHAR(100))
@@ -115,7 +115,7 @@ SET NOCOUNT ON
 		BEGIN
 			SELECT ErrorMessage,ErrorNumber FROM COM_ErrorMessages WITH(nolock) 
 			WHERE ErrorNumber=-112 AND LanguageID=@LangID  
-			ROLLBACK TRANSACTION
+			
 			RETURN 0
 		END
 		
@@ -134,7 +134,8 @@ SET NOCOUNT ON
 		select X.value('@ReportID','BIGINT'),X.value('@GroupLevel','BIT'), X.value('@Shortcut','NVarchar(100)') 
 		from @XML.nodes('XML/Row') as Data(X) 
 		
-		DECLARE @QID BIGINT  
+		DECLARE @QID BIGINT 
+		BEGIN TRANSACTION
 		INSERT INTO ADM_QueryDefn(CostCenterID,ViewID,ViewName,ReportID,DocumentID,GroupID,RoleID,UserID
 			,ShowPriceChart,ListViewID,GroupLevel,Shortcut,CompanyGUID,[GUID],CreatedBy,CreatedDate)
 		SELECT @CostCenterID,@ViewID,@ViewName,ReportID,0,G,R,U,@ShowPriceChart,@ListViewID,GroupLevel,Shortcut,@CompanyGUID,NEWID(),@UserName,@Dt
@@ -158,21 +159,23 @@ SET NOCOUNT ON
 		SET @QID= SCOPE_IDENTITY()
 		--UPDATE ADM_QueryDefn SET HeaderFields=@HeaderFields WHERE Queryid=@QID
 		
+		COMMIT TRANSACTION
 		SELECT ErrorMessage,ErrorNumber FROM COM_ErrorMessages WITH(nolock) 
 		WHERE ErrorNumber=100 AND LanguageID=@LangID    
 	
-	COMMIT TRANSACTION
+	
 	RETURN @ViewID
 	END
 	ELSE IF @Type=4--DELETE
 	BEGIN
-		BEGIN TRANSACTION
+	BEGIN TRANSACTION	
 		select 1
 		DELETE FROM ADM_QueryDefn WHERE CostCenterID=@CostCenterID AND ViewID=@ViewID
-		COMMIT TRANSACTION
+		
 
 		SELECT ErrorMessage,ErrorNumber FROM COM_ErrorMessages WITH(nolock) 
 		WHERE ErrorNumber=102 AND LanguageID=@LangID
+	COMMIT TRANSACTION
 	END
 	ELSE IF @Type=5--To Get user assigned reports for a costcenter
 	BEGIN

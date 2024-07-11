@@ -14,7 +14,7 @@ CREATE PROCEDURE [dbo].[spREN_GetFloorWiseExpiry]
 	@LangID [int] = 1
 WITH ENCRYPTION, EXECUTE AS CALLER
 AS
-BEGIN TRANSACTION    
+    
 BEGIN TRY     
 SET NOCOUNT ON    
 declare @T1 nvarchar(100),@T2 nvarchar(100),@Sql nvarchar(max),@CountSql nvarchar(max),@StatusSelect nvarchar(max)
@@ -100,7 +100,7 @@ EXEC (@CountSql)
   
 EXEC(@StatusSelect)
   
-COMMIT TRANSACTION    
+    
 SET NOCOUNT OFF;    
 RETURN 1    
 END TRY    
@@ -116,7 +116,7 @@ BEGIN CATCH
 ErrorLine    
   FROM COM_ErrorMessages WITH(nolock) WHERE ErrorNumber=-999 AND LanguageID=@LangID   
  END    
-ROLLBACK TRANSACTION    
+    
 SET NOCOUNT OFF      
 RETURN -999       
 END CATCH

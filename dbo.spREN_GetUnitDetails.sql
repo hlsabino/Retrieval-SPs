@@ -9,7 +9,7 @@ CREATE PROCEDURE [dbo].[spREN_GetUnitDetails]
 	@RoleID [int] = 0
 WITH ENCRYPTION, EXECUTE AS CALLER
 AS
-BEGIN TRANSACTION    
+    
 BEGIN TRY     
 SET NOCOUNT ON   
 	
@@ -207,7 +207,7 @@ SET NOCOUNT ON
 		end 
  
         
-COMMIT TRANSACTION    
+    
 SET NOCOUNT OFF;    
 RETURN 1    
 END TRY    
@@ -224,7 +224,7 @@ BEGIN CATCH
 		FROM COM_ErrorMessages WITH(nolock) 
 		WHERE ErrorNumber=-999 AND LanguageID=@LangID    
 	END    
-ROLLBACK TRANSACTION    
+    
 SET NOCOUNT OFF      
 RETURN -999       
 END CATCH

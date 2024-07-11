@@ -21,7 +21,7 @@ SET NOCOUNT ON;
 
 	SET @XML=@PriceXML
 	
-	BEGIN TRANSACTION
+	
 	INSERT INTO @TblXML(ID,[ProductID],UOMID,AccountID
 	   ,CCNID1,CCNID2,CCNID3,CCNID4,CCNID5,CCNID6,CCNID7,CCNID8)
 	SELECT X.value('@ID','INT'), ISNULL(X.value('@ProductID','INT'),1),ISNULL(X.value('@UOMID','INT'),1),ISNULL(X.value('@AccountID','INT'),0),
@@ -50,13 +50,13 @@ SET NOCOUNT ON;
 	
 		SET @I=@I+1	
 	END
-	COMMIT TRANSACTION
+	
 
 	 select ID,PurchaseRate,PurchaseRateA,PurchaseRateB,PurchaseRateC,PurchaseRateD,PurchaseRateE,PurchaseRateF,PurchaseRateG
 		    ,SellingRate,SellingRateA,SellingRateB,SellingRateC,SellingRateD,SellingRateE,SellingRateF,SellingRateG
             ,ReorderLevel,ReorderQty from @TblXML
 
---ROLLBACK TRANSACTION
+--
 
 SET NOCOUNT OFF;  
 RETURN 1  
@@ -72,7 +72,7 @@ BEGIN CATCH
 		SELECT ErrorMessage, ERROR_MESSAGE() AS ServerMessage,ERROR_NUMBER() as ErrorNumber, ERROR_PROCEDURE()as ProcedureName, ERROR_LINE() AS ErrorLine
 		FROM COM_ErrorMessages WITH(NOLOCK) WHERE ErrorNumber=-999 AND LanguageID=@LangID
 	END
-ROLLBACK TRANSACTION
+
 SET NOCOUNT OFF  
 RETURN -999   
 END CATCH

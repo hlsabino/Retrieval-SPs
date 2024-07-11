@@ -50,6 +50,7 @@ SET NOCOUNT ON;
 	END
 	ELSE IF @Type=5
 	BEGIN
+	BEGIN TRANSACTION
 		declare @XML xml
 		
 		set @XML=@strXML
@@ -77,11 +78,13 @@ SET NOCOUNT ON;
 	   INNER JOIN @XML.nodes('/AttachmentsXML/Row') as Data(X)    
 	   ON convert(INT,X.value('@AttachmentID','INT'))=C.FileID  
 	   WHERE X.value('@Action','NVARCHAR(500)')='MODIFY'  
-	   
+	COMMIT TRANSACTION 
 	END
 	ELSE IF @Type=6
 	BEGIN
+	BEGIN TRANSACTION
 		DELETE From COM_Files where CostCenterID=50 and FileID=@Param1
+	COMMIT TRANSACTION
 	END
 	ELSE IF @Type=7
 	BEGIN
@@ -364,8 +367,10 @@ order by ReportName'
 	END
 	ELSE IF @Type=15
 	BEGIN
+	BEGIN TRANSACTION
 		update ADM_RevenUReports set ReportDefnXML=@strXML where ReportID=@Param1
 		select 1 Updated
+	COMMIT TRANSACTION
 	END
 	ELSE IF @Type=16
 	BEGIN
@@ -396,10 +401,12 @@ order by ReportName'
 	END
 	ELSE IF @Type=17
 	BEGIN
+	BEGIN TRANSACTION
 		if @Param1=1
 			update adm_revenureports set ReportDefnXML=replace(ReportDefnXML,'<Commas>2</Commas>','<Commas>1</Commas>') where ReportDefnXML like '%<Commas>2</Commas>%'
 		else if @Param1=2
 			update adm_revenureports set ReportDefnXML=replace(ReportDefnXML,'<Commas>1</Commas>','<Commas>2</Commas>') where ReportDefnXML like '%<Commas>1</Commas>%'
+	COMMIT TRANSACTION
 	END
 	ELSE IF @Type=18
 	BEGIN
@@ -493,6 +500,7 @@ BEGIN CATCH
 			SELECT ErrorMessage, ERROR_MESSAGE() AS ServerMessage,ERROR_NUMBER() as ErrorNumber, ERROR_PROCEDURE()as ProcedureName, ERROR_LINE() AS ErrorLine
 			FROM COM_ErrorMessages WITH(NOLOCK) WHERE ErrorNumber=-999 AND LanguageID=1
 		END
+ROLLBACK TRANSACTION
 SET NOCOUNT OFF  
 RETURN -999   
 END CATCH

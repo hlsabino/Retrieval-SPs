@@ -89,16 +89,18 @@ SET NOCOUNT ON
 	END
 	ELSE IF @Call='DELETE' OR @Call='FORCEDELETE'
 	BEGIN
+	BEGIN TRANSACTION
 		if @Call='DELETE' and exists(select * from ADM_Assign with(nolock) where CostCenterID=69 and NodeID=@FavID and UserID!=@UserID)
 		begin
 			SELECT 'Favourite assigned to users. Still do you want to delete?' DeleteError
-			ROLLBACK TRANSACTION
+			
 			return -101
 		end
 		DELETE FROM COM_Favourite WHERE FavID=@FavID
 		DELETE FROM COM_Favourite WHERE ID=@FavID
 		delete from ADM_Assign where CostCenterID=69 and NodeID=@FavID
 		select @FavID Deleted
+	COMMIT TRANSACTION
 	END
 	ELSE IF @Call='VIEW'
 	BEGIN
@@ -560,6 +562,7 @@ BEGIN CATCH
 		SELECT ErrorMessage, ERROR_MESSAGE() AS ServerMessage,ERROR_NUMBER() as ErrorNumber, ERROR_PROCEDURE()as ProcedureName, ERROR_LINE() AS ErrorLine  
 		FROM COM_ErrorMessages WITH(nolock) WHERE ErrorNumber=-999 AND LanguageID=@LangID  
 	END
+	ROLLBACK TRANSACTION
 	SET NOCOUNT OFF    
 	RETURN -999     
 END CATCH

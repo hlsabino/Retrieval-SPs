@@ -9,7 +9,7 @@ CREATE PROCEDURE [dbo].[spADM_GetAndDeleteDistCosts]
 	@LangID [int] = 1
 WITH ENCRYPTION, EXECUTE AS CALLER
 AS
-BEGIN TRANSACTION    
+  
 BEGIN TRY    
 SET NOCOUNT ON;  
 
@@ -18,8 +18,10 @@ begin
 	select * from Adm_MapCosts a with(nolock)
 end
 else if(@Type=3)
-begin	
+begin
+BEGIN TRANSACTION
 	delete from Adm_DistributeCosts where ProfileID=@ProfileID
+COMMIT TRANSACTION
 end
 else
 begin
@@ -32,10 +34,7 @@ begin
 	   select * from Adm_DistributeCosts a with(nolock) where ProfileID=@ProfileID
 	end
 end
-
-   
-     
-COMMIT TRANSACTION   
+  
 SET NOCOUNT OFF;
   SELECT ErrorMessage,ErrorNumber FROM COM_ErrorMessages WITH(nolock)       
   WHERE ErrorNumber=102 AND LanguageID=@LangID    
@@ -51,7 +50,7 @@ BEGIN CATCH
    SELECT ErrorMessage, ERROR_MESSAGE() AS ServerMessage,ERROR_NUMBER() as ErrorNumber, ERROR_PROCEDURE()as ProcedureName, ERROR_LINE() AS ErrorLine  
    FROM COM_ErrorMessages WITH(NOLOCK) WHERE ErrorNumber=-999  AND LanguageID=@LangID 
   END  
-ROLLBACK TRANSACTION  
+ ROLLBACK TRANSACTION
 SET NOCOUNT OFF    
 RETURN -999     
 END CATCH 

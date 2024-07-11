@@ -11,7 +11,7 @@ CREATE PROCEDURE [dbo].[spCOM_GetCodeData]
 	@IsGroupCode [smallint] = 0
 WITH ENCRYPTION, EXECUTE AS CALLER
 AS
---BEGIN TRANSACTION
+--
 BEGIN TRY  
 SET NOCOUNT ON;    
 	-- Declare the variable here
@@ -63,7 +63,7 @@ SET NOCOUNT ON;
 		if @ShowAutoManual=1
 		begin
 			select null Prefix,null Number,null Suffix,null Code,@ShowAutoManual IsManualCode
-			--rollback transaction
+			--
 			return 1
 		end
 	end
@@ -435,7 +435,7 @@ SET NOCOUNT ON;
 			if @CurrentCodeNumber>@SeriesEnd
 			begin
 				select null Prefix,null Number,null Suffix,null Code,@ShowAutoManual IsManualCode,@SeriesEnd ExceedsLimit
-				--rollback transaction
+				--
 				return 1
 			end
 			else if(@CurrentCodeNumber<@SeriesStart)
@@ -453,7 +453,7 @@ SET NOCOUNT ON;
 	select @CodePrefix Prefix,@CodeNumber Number,@Suffix Suffix,ISNULL(@CodePrefix,'')+ISNULL(@CodeNumber,'')+ISNULL(@Suffix,'') Code
 		,@ShowAutoManual IsManualCode
 
---COMMIT TRANSACTION    
+--    
 SET NOCOUNT OFF;     
 RETURN 1
 END TRY
@@ -467,7 +467,7 @@ BEGIN CATCH
 			SELECT ErrorMessage, ERROR_MESSAGE() AS ServerMessage,ERROR_NUMBER() as ErrorNumber, ERROR_PROCEDURE()as ProcedureName, ERROR_LINE() AS ErrorLine
 			FROM COM_ErrorMessages WITH(nolock) WHERE ErrorNumber=-999 AND LanguageID=1 
 			
- --ROLLBACK TRANSACTION  
+ --  
  SET NOCOUNT OFF    
  RETURN -999     
 END CATCH

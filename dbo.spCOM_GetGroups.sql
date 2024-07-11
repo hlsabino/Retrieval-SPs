@@ -7,7 +7,7 @@ CREATE PROCEDURE [dbo].[spCOM_GetGroups]
 	@LangId [int] = 1
 WITH ENCRYPTION, EXECUTE AS CALLER
 AS
-begin transaction
+
 
 if(@GID=0)
 begin
@@ -23,7 +23,7 @@ end
 
 
 
-commit transaction
+
 
 	RETURN
 GO

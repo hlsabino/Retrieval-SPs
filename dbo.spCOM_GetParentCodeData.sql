@@ -8,7 +8,7 @@ CREATE PROCEDURE [dbo].[spCOM_GetParentCodeData]
 	@Code [nvarchar](500) OUTPUT
 WITH ENCRYPTION, EXECUTE AS CALLER
 AS
-BEGIN TRANSACTION
+
 BEGIN TRY  
 SET NOCOUNT ON;    
 				declare @PK nvarchar(50),@ColCode nvarchar(50),@TblName nvarchar(50),@tempCode Nvarchar(500) ,@length int
@@ -95,7 +95,7 @@ SET NOCOUNT ON;
 					END
 				END	
 
-COMMIT TRANSACTION    
+    
 SET NOCOUNT OFF;     
 RETURN 1
 END TRY
@@ -109,7 +109,7 @@ BEGIN CATCH
 			SELECT ErrorMessage, ERROR_MESSAGE() AS ServerMessage,ERROR_NUMBER() as ErrorNumber, ERROR_PROCEDURE()as ProcedureName, ERROR_LINE() AS ErrorLine
 			FROM COM_ErrorMessages WITH(nolock) WHERE ErrorNumber=-999 AND LanguageID=1 
 			
- ROLLBACK TRANSACTION  
+   
  SET NOCOUNT OFF    
  RETURN -999     
 END CATCH

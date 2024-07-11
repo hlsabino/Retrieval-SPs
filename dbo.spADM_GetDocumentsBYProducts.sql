@@ -99,12 +99,12 @@ SET NOCOUNT ON;
 		
 		if(@DeleteOldValues=1)
 		BEGIN
-		BEGIN TRANSACTION 
+		 
 			set @sql=' delete from INV_ProductAvgRate '
 			if(@ProductIDs<>'')
 				set @sql =@sql+' where ProductID in('+@ProductIDs+')'
 			exec(	@SQL)
-		COMMIT TRANSACTION 
+		 
 		END
          
 SET NOCOUNT OFF;         
@@ -121,7 +121,7 @@ BEGIN CATCH
   SELECT ErrorMessage, ERROR_MESSAGE() AS ServerMessage,ERROR_NUMBER() as ErrorNumber, ERROR_PROCEDURE()as ProcedureName, ERROR_LINE() AS ErrorLine      
  FROM COM_ErrorMessages WITH(NOLOCK) WHERE ErrorNumber=-999 AND LanguageID=@LangID      
  END      
-ROLLBACK TRANSACTION      
+      
 SET NOCOUNT OFF        
 RETURN -999         
 END CATCH        

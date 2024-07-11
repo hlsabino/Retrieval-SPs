@@ -9,7 +9,7 @@ CREATE PROCEDURE [dbo].[spCRM_GetDocDetails]
 	@LangID [int] = 1
 WITH ENCRYPTION, EXECUTE AS CALLER
 AS
-BEGIN TRANSACTION    
+    
       
 SET NOCOUNT ON    
 		
@@ -25,6 +25,6 @@ SET NOCOUNT ON
 		wHERE a.InvDocDetailsID=@InvDocDetailsID
         
     
-COMMIT TRANSACTION    
+    
 SET NOCOUNT OFF;
 GO

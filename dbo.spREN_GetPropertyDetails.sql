@@ -11,7 +11,7 @@ CREATE PROCEDURE [dbo].[spREN_GetPropertyDetails]
 	@LangID [int] = 1
 WITH ENCRYPTION, EXECUTE AS CALLER
 AS
-BEGIN TRANSACTION    
+    
 BEGIN TRY     
 SET NOCOUNT ON    
     
@@ -150,7 +150,7 @@ END
   
      
       
-COMMIT TRANSACTION    
+    
 SET NOCOUNT OFF;    
 RETURN 1    
 END TRY    
@@ -166,7 +166,7 @@ BEGIN CATCH
 ErrorLine    
   FROM COM_ErrorMessages WITH(nolock) WHERE ErrorNumber=-999 AND LanguageID=@LangID    
  END    
-ROLLBACK TRANSACTION    
+    
 SET NOCOUNT OFF      
 RETURN -999       
 END CATCH      

@@ -10,7 +10,7 @@ CREATE PROCEDURE [dbo].[spREN_GetDimensionNodeID]
 	@Dimesion [bigint] = 1 OUTPUT
 WITH ENCRYPTION, EXECUTE AS CALLER
 AS
-BEGIN TRANSACTION      
+      
 BEGIN TRY       
 SET NOCOUNT ON     
       
@@ -92,7 +92,7 @@ SET NOCOUNT ON
 	end
  
  
-COMMIT TRANSACTION      
+      
 SET NOCOUNT OFF;      
 RETURN ISNULL(@ReturnValue,1)  
 END TRY      
@@ -107,7 +107,7 @@ BEGIN CATCH
   SELECT ErrorMessage, ERROR_MESSAGE() AS ServerMessage,ERROR_NUMBER() as ErrorNumber, ERROR_PROCEDURE()as ProcedureName, ERROR_LINE() AS ErrorLine      
   FROM COM_ErrorMessages WITH(nolock) WHERE ErrorNumber=-999 AND LanguageID=@LangID      
  END      
-ROLLBACK TRANSACTION      
+      
 SET NOCOUNT OFF        
 RETURN -999         
 END CATCH

@@ -10,7 +10,7 @@ CREATE PROCEDURE [dbo].[spCOM_GetCostCenterScreenDetails]
 	@CompanyID [int] = 0
 WITH ENCRYPTION, EXECUTE AS CALLER
 AS
-BEGIN TRANSACTION                                 
+                                 
 BEGIN TRY                                
 SET NOCOUNT ON;                              
 	--Declaration Section                              
@@ -782,7 +782,7 @@ SET NOCOUNT ON;
              
 --*** DONT ADD ANY QUERIES BELOW TO THIS LINE - ADIL
                          
-COMMIT TRANSACTION                               
+                               
 SET NOCOUNT OFF;                              
 RETURN 1                              
 END TRY                              
@@ -797,7 +797,7 @@ END
    SELECT ErrorMessage, ERROR_MESSAGE() AS ServerMessage,ERROR_NUMBER() as ErrorNumber, ERROR_PROCEDURE()as ProcedureName, ERROR_LINE() AS ErrorLine                              
    FROM COM_ErrorMessages WITH(NOLOCK) WHERE ErrorNumber=-999 AND LanguageID=@LangID                              
   END                              
-ROLLBACK TRANSACTION                              
+                              
 SET NOCOUNT OFF                                
 RETURN -999                       
 END CATCH

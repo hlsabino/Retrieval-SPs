@@ -34,7 +34,7 @@ SET NOCOUNT ON
 	       
 	  if(@NodeIDTemp IS NULL OR @NodeIDTemp = '' OR @NodeIDTemp  = 0)
 	  begin 
-	  BEGIN TRANSACTION 
+	   
 		   SET @TEMPxml='<XML><Row AccountName ="'+replace(@CostcenterName,'&','&amp;')+'" AccountCode ="'+replace(@CostcenterName,'&','&amp;')+'"  ></Row></XML>'    
 		   
 		      
@@ -59,7 +59,7 @@ SET NOCOUNT ON
 	     
 	   EXEC SP_EXECUTESQL @QRY ,@TEMPQUERY,@NodeIDTemp  OUTPUT  
 		 
-	  COMMIT TRANSACTION  
+	    
 	  end 
 			--select  @NodeIDTemp
 	-- set  @NodeIDRtn=   @NodeIDTemp 
@@ -91,7 +91,7 @@ BEGIN CATCH
    SELECT ErrorMessage, ERROR_MESSAGE() AS ServerMessage,ERROR_NUMBER() as ErrorNumber, ERROR_PROCEDURE()as ProcedureName, ERROR_LINE() AS ErrorLine  
    FROM COM_ErrorMessages WITH(nolock) WHERE ErrorNumber=-999 AND LanguageID=@LangID  
   END  
-ROLLBACK TRANSACTION  
+  
 SET NOCOUNT OFF    
 RETURN -999     
 END CATCH  

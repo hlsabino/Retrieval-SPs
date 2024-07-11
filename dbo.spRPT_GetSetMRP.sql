@@ -76,7 +76,7 @@ SET NOCOUNT ON;
 	END
 	/*ELSE IF @Type=3--Save MRP Report
 	BEGIN
-		BEGIN TRANSACTION
+		
 		set @XML=@Param1
 		select @ProfileName=x.value('Name[1]','nvarchar(200)') from @XML.nodes('/XML') as data(x)
 		IF not exists (select MRPID from INV_MRP with(nolock) where MRPID=@MRPID)
@@ -105,14 +105,14 @@ SET NOCOUNT ON;
 			from @XML.nodes('/XML') as data(x)      
 			where MRPID=@MRPID      
 		END
-		COMMIT TRANSACTION
-		--ROLLBACK TRANSACTION
+		
+		--
 		SELECT ErrorMessage,ErrorNumber FROM COM_ErrorMessages WITH(nolock) 
 		WHERE ErrorNumber=100 AND LanguageID=@LangID
 	END*/
 	ELSE IF @Type=4--Save MRP
 	BEGIN
-		BEGIN TRANSACTION
+		
 		DECLARE @SelectedIsGroup bit
 		DECLARE @lft INT,@rgt INT,@Selectedlft INT,@Selectedrgt INT,@Depth int,@ParentID INT
 
@@ -120,7 +120,7 @@ SET NOCOUNT ON;
 		select @ProfileName=x.value('Name[1]','nvarchar(200)') from @XML.nodes('/XML') as data(x)
 		IF EXISTS (SELECT MRPID FROM INV_MRP WITH(nolock) WHERE MRPID!=@MRPID and MRPID>0 AND Name=@ProfileName) 
 		BEGIN
-			ROLLBACK TRANSACTION
+			
 			RAISERROR('-112',16,1)  
 		END
 			
@@ -177,6 +177,7 @@ SET NOCOUNT ON;
 		END--------END INSERT RECORD-----------
 		ELSE
 		BEGIN
+		BEGIN TRANSACTION
 			update INV_MRP set Name=@ProfileName
 			,FCID=x.value('FCID[1]','INT'),FCPeriod=x.value('FCPeriod[1]','nvarchar(50)')
 			,FromDate=convert(float,x.value('FromDate[1]','DateTime')),ToDate=convert(float,x.value('ToDate[1]','DateTime'))
@@ -185,12 +186,13 @@ SET NOCOUNT ON;
 			,TreeXML=@Param3
 			,GUID=newid(),ModifiedBy=@UserName,ModifiedDate=convert(float,getdate())
 			from @XML.nodes('/XML') as data(x)      
-			where MRPID=@MRPID      
+			where MRPID=@MRPID  
+		COMMIT TRANSACTION
 		END
 		--select convert(nvarchar(max),x.query('DefaultPref[1]')) from @XML.nodes('/XML') as data(x)			
 		--select * from INV_MRP where MRPID=@MRPID
-		COMMIT TRANSACTION
-		--ROLLBACK TRANSACTION
+		
+		--
 		SELECT ErrorMessage,ErrorNumber FROM COM_ErrorMessages WITH(nolock) 
 		WHERE ErrorNumber=100 AND LanguageID=@LangID
 	END
@@ -372,11 +374,14 @@ inner join INV_Product P with(nolock) on KP.ParentProductID=P.ProductID
 	END
 	ELSE IF @Type=7
 	BEGIN
+	BEGIN TRANSACTION
 		INSERT INTO com_docbridge(CostCenterID,NodeID,AccDocID,InvDocID,Abbreviation,CompanyGUID,GUID,CreatedBy,CreatedDate,RefDimensionID,RefDimensionNodeID)
-		VALUES(@Param1,@Param2,0,0,'','',newid(),@UserName,convert(float,getdate()),257,@MRPID)		
+		VALUES(@Param1,@Param2,0,0,'','',newid(),@UserName,convert(float,getdate()),257,@MRPID)
+	COMMIT TRANSACTION
 	END
 	ELSE IF @Type=8
 	BEGIN
+	BEGIN TRANSACTION
 		set @XML=@Param1
 		INSERT INTO COM_Files(FilePath,ActualFileName,RelativeFileName,
 		FileExtension,FileDescription,IsProductImage,FeatureID,CostCenterID,FeaturePK,  
@@ -388,6 +393,7 @@ inner join INV_Product P with(nolock) on KP.ParentProductID=P.ProductID
 		WHERE X.value('@Action','NVARCHAR(10)')='NEW'  
 		SELECT ErrorMessage,ErrorNumber FROM COM_ErrorMessages WITH(nolock) 
 		WHERE ErrorNumber=100 AND LanguageID=@LangID
+	COMMIT TRANSACTION
 	END
 	ELSE IF @Type=9
 	BEGIN
@@ -397,7 +403,9 @@ inner join INV_Product P with(nolock) on KP.ParentProductID=P.ProductID
 	END
 	ELSE IF @Type=10
 	BEGIN
+	BEGIN TRANSACTION
 		DELETE From COM_Files where CostCenterID=257 and FeaturePK=@MRPID and FileID=@Param1
+	COMMIT TRANSACTION
 	END
 	ELSE IF @Type=11--FIFO Priority Report
 	BEGIN
@@ -484,6 +492,8 @@ BEGIN CATCH
 		SELECT ErrorMessage, ERROR_MESSAGE() AS ServerMessage,ERROR_NUMBER() as ErrorNumber, ERROR_PROCEDURE()as ProcedureName, ERROR_LINE() AS ErrorLine
 		FROM COM_ErrorMessages WITH(nolock) WHERE ErrorNumber=-999 AND LanguageID=@LangID
 	END
+
+ROLLBACK TRANSACTION
 SET NOCOUNT OFF  
 RETURN -999   
 END CATCH

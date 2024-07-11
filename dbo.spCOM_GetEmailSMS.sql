@@ -197,13 +197,13 @@ BEGIN
 END    
 ELSE IF @GetType=3--Update notification event status    
 BEGIN    
- BEGIN TRANSACTION      
+       
   
  UPDATE COM_SchEvents  
  SET FailureCount=FailureCount+1,[Message]=@Param1  
  WHERE SchEventID=@ID    
   
- COMMIT TRANSACTION     
+      
 END    
 ELSE IF @GetType=4--Get notification events    
 BEGIN  
@@ -368,12 +368,7 @@ BEGIN CATCH
   SELECT ErrorMessage, ERROR_MESSAGE() AS ServerMessage,ERROR_NUMBER() as ErrorNumber, ERROR_PROCEDURE()as ProcedureName, ERROR_LINE() AS ErrorLine    
  FROM COM_ErrorMessages WITH(NOLOCK) WHERE ErrorNumber=-999 AND LanguageID=@LangID    
  END    
-   
- BEGIN TRY   
-  ROLLBACK TRANSACTION    
- END TRY    
- BEGIN CATCH  
- END CATCH      
+    
   
 SET NOCOUNT OFF      
 RETURN -999       
