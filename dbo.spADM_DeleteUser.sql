@@ -9,7 +9,7 @@ CREATE PROCEDURE [dbo].[spADM_DeleteUser]
 	@LangID [int] = 1
 WITH ENCRYPTION, EXECUTE AS CALLER
 AS
-BEGIN TRANSACTION
+
 SET NOCOUNT ON
 BEGIN TRY
 		
@@ -44,7 +44,7 @@ BEGIN TRY
 		ELSE IF @IsUserdefined = 0
 			RAISERROR('-102',16,1)	
 		 
-	 
+		BEGIN TRANSACTION	 
 		--Change the status to deleted
 		UPDATE [PACT2C].dbo.ADM_Users 
 		SET StatusID=2--For Deleted
@@ -61,8 +61,7 @@ BEGIN TRY
 		WHERE UserID=@DataUserID 
 		and UserName = @DataUserName
 
-
-COMMIT TRANSACTION
+		COMMIT TRANSACTION
 SET NOCOUNT OFF;  
 RETURN 1
 END TRY

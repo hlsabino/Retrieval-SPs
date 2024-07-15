@@ -8,7 +8,7 @@ CREATE PROCEDURE [dbo].[spADM_RemoveBarcodeLayout]
 	@LangID [int] = 1
 WITH ENCRYPTION, EXECUTE AS CALLER
 AS
-BEGIN TRANSACTION
+
 BEGIN TRY  
 SET NOCOUNT ON;  
 		--Declaration Section
@@ -33,10 +33,10 @@ SET NOCOUNT ON;
 		END
 		ELSE
 		
+		BEGIN TRANSACTION
 		DELETE FROM ADM_DocBarcodeLayouts WHERE BarcodeLayoutID = @LayoutID
-		SET @RowsDeleted=@@rowcount
-		
-COMMIT TRANSACTION
+		SET @RowsDeleted=@@rowcount		
+		COMMIT TRANSACTION
 SET NOCOUNT OFF;  
 RETURN @RowsDeleted
 END TRY

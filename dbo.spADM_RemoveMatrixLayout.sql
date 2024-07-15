@@ -9,7 +9,7 @@ CREATE PROCEDURE [dbo].[spADM_RemoveMatrixLayout]
 	@LangID [int] = 1
 WITH ENCRYPTION, EXECUTE AS CALLER
 AS
-BEGIN TRANSACTION
+
 BEGIN TRY  
 SET NOCOUNT ON;  
 		--Declaration Section
@@ -33,13 +33,13 @@ SET NOCOUNT ON;
 			RAISERROR('-110',16,1)
 		END
 		ELSE
-		
+		BEGIN TRANSACTION
+
 		DELETE FROM INV_MatrixDef WHERE ProfileID=@ProfileID			
 		SET @RowsDeleted=@@rowcount
-		
-		
-		
-COMMIT TRANSACTION
+
+		COMMIT TRANSACTION
+
 SET NOCOUNT OFF;  
 RETURN @RowsDeleted
 END TRY

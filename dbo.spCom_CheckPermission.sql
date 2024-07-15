@@ -9,7 +9,7 @@ CREATE PROCEDURE [dbo].[spCom_CheckPermission]
 	@LangID [int] = 1
 WITH ENCRYPTION, EXECUTE AS CALLER
 AS
-BEGIN TRANSACTION      
+      
 BEGIN TRY      
 SET NOCOUNT ON;    
 
@@ -26,7 +26,7 @@ SET @HasAccess=0
  
  select @HasAccess
  
- COMMIT TRANSACTION     
+     
 SET NOCOUNT OFF;       
 RETURN @HasAccess
 END TRY    
@@ -41,7 +41,7 @@ BEGIN CATCH
   SELECT ErrorMessage, ERROR_MESSAGE() AS ServerMessage,ERROR_NUMBER() as ErrorNumber, ERROR_PROCEDURE()as ProcedureName, ERROR_LINE() AS ErrorLine    
  FROM COM_ErrorMessages WITH(NOLOCK) WHERE ErrorNumber=-999 AND LanguageID=@LangID    
  END    
-ROLLBACK TRANSACTION    
+    
 SET NOCOUNT OFF      
 RETURN -999       
 END CATCH      

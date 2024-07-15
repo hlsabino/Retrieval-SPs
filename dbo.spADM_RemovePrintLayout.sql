@@ -8,7 +8,7 @@ CREATE PROCEDURE [dbo].[spADM_RemovePrintLayout]
 	@LangID [int] = 1
 WITH ENCRYPTION, EXECUTE AS CALLER
 AS
-BEGIN TRANSACTION
+
 BEGIN TRY  
 SET NOCOUNT ON;  
 		--Declaration Section
@@ -36,13 +36,13 @@ SET NOCOUNT ON;
 			RAISERROR(@EmailName,16,1)
 		end
 		
+		BEGIN TRANSACTION
 		DELETE FROM ADM_DocPrintLayoutsMap WHERE DocPrintLayoutID = @LayoutID
 
 		DELETE FROM ADM_DocPrintLayouts WHERE DocPrintLayoutID = @LayoutID
 		SET @RowsDeleted=@@rowcount
 		
-		
-COMMIT TRANSACTION
+		COMMIT TRANSACTION
 SET NOCOUNT OFF;  
 RETURN @RowsDeleted
 END TRY
